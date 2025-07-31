@@ -13,6 +13,7 @@
 
 #include <shader.hpp>
 #include <camera.hpp>
+#include <engine.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos);
@@ -30,6 +31,9 @@ const float window_y = 600.f;
 
 // Camera
 Camera camera;
+
+// Engine
+Engine engine(window_x, window_y);
 
 // Timings
 float delta_time = 0.0f; // Time between current frame and last frame
@@ -87,68 +91,6 @@ int main() {
     // window specfied is resized. Called when window is first displayed.
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // Build, compile and configure shader program
-    // ----------------------------------------------------------------------------------
-    Shader shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl");
-
-
-    // Set up vertex data, buffers and configure the vertex attributes
-    // ----------------------------------------------------------------------------------
-
-    // Define the vertices of the two triangles we want to draw to create rectangle
-    float vertices[] = {
-         0.0f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-    };
-
-    glm::vec3 triangle_colour(1.0f, 0.0f, 0.0f); // Starts as red
-
-    // Manage the memory where these vertices will go in the GPU using 
-    // a vertex buffer obect (VBO). Able to store large batches of data on
-    // the GPU where the GPU will have easy access
-    unsigned int VBO; // ID of our VBO which we will use to access it
-    unsigned int VAO; // Similar for VAO
-
-    // Use Vertex Array Object (VAO) to keep the vertex attribute config saved in that VAO
-    glGenVertexArrays(1, &VAO);
-    // OpenGL function to generate buffer object. Sets the VBO equal to reference ID
-    glGenBuffers(1, &VBO);
-
-    // Bind the VAO first, then bind and set the vertex buffers. Finally configure vertex
-    // attributes
-    glBindVertexArray(VAO);
-
-    // Binds buffer object to a specfic type, in this case, array buffer
-    // Any buffer calls we make to GL_ARRAY_BUFFER will configure the bound object (VBO)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    // Copies the user-defined data into the chose buffer.
-    // 4th parameter defines how we want GPU to manage the data.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Need to tell OpenGL how to interpret the vertex data (configure vertex attribute)
-    // Currently laid out like this:
-    // [x1][y1][z1][x2][y2][z2][x3][y3][z3]
-    // [ vertex_1 ][ vertex_2 ][ vertex_3 ]
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    // Argument 1: Specify which vertex attribute we want to configure. 
-    // Recall location = 0 in the vertex shader source code
-    // Argument 2: Size of vertex attribute (vec3 in the input)
-    // Argument 3: Data type
-    // Argument 5: Space between subsequent vertex attributes in bytes
-    // Vertex attribute taken from the VBO currently bound to GL_ARRAY_BUFFER when 
-    // function above is called
-    glEnableVertexAttribArray(0); // Enables vertex attribute at specified location
-
-    // Can now unbind VBO from GL_ARRAY_BUFFER as VBO was registered during
-    // glVertexAttribPointer call. Not usually necessary. This is an example.
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Can now unbind VAO to prevent future calls accidentally modifying this VAO
-    // Not usually necessary. This is an example.
-    glBindVertexArray(0);
-
 
     // *----------------------------------------------------------------------------------*
     // | Depth Testing:  -OpenGL stores all DEPTH information within the DEPTH BUFFER     |
@@ -173,6 +115,8 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+    // Initialise the engine
+    engine.init();
 
     // Start the render loop which runs until GLWF window is closed
     // ----------------------------------------------------------------------------------
@@ -189,55 +133,6 @@ int main() {
         //Process inputs every frame
         processInput(window);
 
-        // Sets given shader program as active shader program to use for drawing commands
-        shader.use();
-
-
-        // Define the transformations
-        // ------------------------------------------------------------------------------
-
-        // Model transformation taking objects from their local coordinates to global
-        // coordinates. Objects imported from blender usually have 0,0,0 in their centre
-        // we may want to place an object somewhere other than the centre of the scene.
-        glm::mat4 model(1.0f);
-
-        // View transformation: Changes coordinates such that everything is in front of
-        // of the camera / user
-        // For now will just take a step back, i.e. move the entire scene forwards.
-        // OpenGL is righthanded. I.e. right is +x, up is +y, forward is -z
-        // *----------------------------------------------------------------------------------*
-        // | Camera:  -Will simulate the effect of a camera in OpenGL using view transform    |
-        // |   -To simplify the process will use GLM's lookat function which creates a lookat |
-        // |   matrix that defines the camera's aim and POSITION in space.                    |
-        // |   -Mathematically, lookat matrix created using two matrices, one for aim the     |
-        // |   other for position. Aim matrix is transposed and position is negated since     |
-        // |   moving the camera is equivalent to moving the entire scene which is what we    |
-        // |   are actually going to do.                                                      |
-        // *----------------------------------------------------------------------------------*
-
-        glm::mat4 view = camera.lookAt();
-
-        // Projection transformation: Move everything from view space to clip space.
-        // I.e. need to move things to the standard coordinates of -1.0 to 1.0.
-        // Defined by a viewing box called frustum where only vertices inside end up
-        // beind rendered. Can do this using ORTHOGRAPHIC or PERSPECTIVE projection.
-        // Perspective is the realistic one so will use that
-        glm::mat4 projection;
-        projection = glm::perspective(glm::radians(camera.fov), (window_x / window_y), 0.1f, 100.f);
-        // Argument 1: FoV
-        // Argument 2: Aspect ratio of window
-        // Argument 3: Near plane of frustum
-        // Argument 4: Far plane of frustum
-
-        // Apply the transformations
-        // ------------------------------------------------------------------------------
-        shader.setMat("model", model);
-
-        shader.setMat("view", view);
-
-        shader.setMat("projection", projection);
-
-
         // Set the colour that the buffer will be cleared with.
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // State setting function
 
@@ -252,21 +147,12 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        shader.setVec3("colour", triangle_colour);
-
-        // Want to draw the desired triangle now, bind VAO defined earlier
-        glBindVertexArray(VAO);
-        // Draws primitives using currently active shader, vertex config from current 
-        // Vertex Array Object and VBO indirectly bound by VAO
-        // Argument 1: Type of primitive we want to draw
-        // Argument 2: Starting point of data
-        // Argument 3: Number of vertices
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        // Engine rendering
+        engine.render();
 
         // After drawing OpenGL objects, draw ImGUI
         ImGui::Begin("ImGUI Window");
         ImGui::Text("This is an ImGUI window!");
-        ImGui::ColorEdit3("Triangle Colour", glm::value_ptr(triangle_colour));
         ImGui::End();
 
         ImGui::Render();
@@ -316,13 +202,13 @@ void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos) {
     last_mousex = mouse_xpos;
     last_mousey = mouse_ypos;
 
-    camera.processMouse(offset_x, offset_y);
+    engine.active_camera->processMouse(offset_x, offset_y);
 }
 
 void scroll_callback(GLFWwindow* window, double x_offset, double y_offset) {
     // Function that is called whenever scroll receives input
 
-    camera.processScroll(x_offset, y_offset);
+    engine.active_camera->processScroll(x_offset, y_offset);
 }
 
 void processInput(GLFWwindow* window) {
@@ -335,22 +221,22 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera.processKeyboard(FORWARD, delta_time);
+        engine.active_camera->processKeyboard(FORWARD, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera.processKeyboard(LEFT, delta_time);
+        engine.active_camera->processKeyboard(LEFT, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera.processKeyboard(BACKWARD, delta_time);
+        engine.active_camera->processKeyboard(BACKWARD, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera.processKeyboard(RIGHT, delta_time);
+        engine.active_camera->processKeyboard(RIGHT, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camera.processKeyboard(UP, delta_time);
+        engine.active_camera->processKeyboard(UP, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-        camera.processKeyboard(DOWN, delta_time);
+        engine.active_camera->processKeyboard(DOWN, delta_time);
     }
     if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
         m_key_pressed = true;
