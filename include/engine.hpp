@@ -3,7 +3,8 @@
 #include <vector>
 #include <memory>
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <camera.hpp>
 #include <shader.hpp>
@@ -17,6 +18,7 @@ public:
 	void init();
 	void update();
 	void render();
+	void render_imgui();
 
 	Camera* active_camera;
 private:
@@ -28,5 +30,6 @@ private:
 
 	Shader gameobject_shader;
 
-	std::vector<std::unique_ptr<GameObject>> game_objects;
+	std::shared_ptr<GameObject> selected_object;
+	std::vector<std::shared_ptr<GameObject>> game_objects;
 };

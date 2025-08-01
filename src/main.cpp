@@ -151,9 +151,7 @@ int main() {
         engine.render();
 
         // After drawing OpenGL objects, draw ImGUI
-        ImGui::Begin("ImGUI Window");
-        ImGui::Text("This is an ImGUI window!");
-        ImGui::End();
+        engine.render_imgui();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
