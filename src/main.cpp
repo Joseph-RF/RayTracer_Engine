@@ -18,6 +18,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos);
 void scroll_callback(GLFWwindow* window, double x_offset, double y_offset);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
 // -------------!!!--NOTE--!!!-------------
@@ -26,8 +27,8 @@ void processInput(GLFWwindow* window);
 // and positions change frequently.
 
 // Window size
-const float window_x = 800.f;
-const float window_y = 600.f;
+const float window_x = 1200.f;
+const float window_y = 800.f;
 
 // Camera
 Camera camera;
@@ -50,6 +51,7 @@ bool first_scroll = true;
 
 bool mouse_locked_invisible = true;
 bool m_key_pressed = false;
+bool mouse_button_pressed = false;
 
 int main() {
     glfwInit();
@@ -74,6 +76,7 @@ int main() {
     // and or scrolled
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     // Initialialise GLAD in order to get access to OpenGL function pointers before
     //using OpenGL
@@ -103,6 +106,7 @@ int main() {
     // *----------------------------------------------------------------------------------*
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
 
     // Imgui Code
     // ----------------------------------------------------------------------------------
@@ -137,7 +141,7 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // State setting function
 
         // Clear buffer with colour set
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // State using function
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // State using function
 
         // Imgui
         // ------------------------------------------------------------------------------
@@ -161,6 +165,9 @@ int main() {
 
         // Checks if any events have been triggered e.g. keyboard input or mouse movement
         glfwPollEvents();
+
+        // Update the engine
+        engine.update();
     }
 
     glfwTerminate(); // Clean up all of GLFW resources
@@ -180,8 +187,9 @@ void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos) {
     float xpos = static_cast<float>(mouse_xpos);
     float ypos = static_cast<float>(mouse_ypos);
 
-    // If mouse is freed, ignore this function
+    // If mouse is freed
     if (!mouse_locked_invisible) {
+        engine.mouseObjectsIntersect(xpos, ypos);
         return;
     }
 
@@ -207,6 +215,18 @@ void scroll_callback(GLFWwindow* window, double x_offset, double y_offset) {
     // Function that is called whenever scroll receives input
 
     engine.active_camera->processScroll(x_offset, y_offset);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        mouse_button_pressed = true;
+    }
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        if (mouse_button_pressed == true) {
+            mouse_button_pressed = false;
+            engine.processMouseClick();
+        }
+    }
 }
 
 void processInput(GLFWwindow* window) {

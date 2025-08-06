@@ -9,6 +9,8 @@ Cube::Cube(glm::vec3 pos, glm::vec3 orientation, float size, glm::vec3 colour) {
 	this->orientation = orientation;
 	this->size = size;
 	this->colour = colour;
+
+    update_bounding_box();
 }
 
 void Cube::draw(Shader& shader) {
@@ -95,4 +97,45 @@ void Cube::init() {
     glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
+}
+
+AABB Cube::update_bounding_box() {
+    // Update the bounding box
+    std::vector<glm::vec3> vert = {
+        glm::vec3(-0.5f, -0.5f, -0.5f),
+        glm::vec3(0.5f, -0.5f, -0.5f),
+        glm::vec3(-0.5f, -0.5f,  0.5f),
+        glm::vec3(0.5f, -0.5f,  0.5f),
+        glm::vec3(-0.5f,  0.5f, -0.5f),
+        glm::vec3(0.5f,  0.5f, -0.5f),
+        glm::vec3(-0.5f,  0.5f,  0.5f),
+        glm::vec3(0.5f,  0.5f,  0.5f)
+    };
+
+    glm::mat4 rotation_matrix(1.0);
+    for (unsigned int i = 0; i < vert.size(); ++i) {
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, pos);
+        model = glm::rotate(model, orientation.x, glm::vec3(1.0, 0.0, 0.0));
+        model = glm::rotate(model, orientation.y, glm::vec3(0.0, 1.0, 0.0));
+        model = glm::rotate(model, orientation.z, glm::vec3(0.0, 0.0, 1.0));
+        model = glm::scale(model, size * glm::vec3(1.0, 1.0, 1.0));
+
+        vert[i] = glm::vec3(model * glm::vec4(vert[i], 1.0));
+    }
+
+    // Default bbox given the cube's vertices
+    // Adjust depending on the transformations
+    // NOTE: Assume that it won't change later
+    bbox = AABB(vert[0].x, vert[0].x, vert[0].y, vert[0].y, vert[0].z, vert[0].z);
+
+    for (unsigned int i = 0; i < vert.size(); ++i) {
+        if (vert[i].x < bbox.xmin) { bbox.xmin = vert[i].x; }
+        if (vert[i].x > bbox.xmax) { bbox.xmax = vert[i].x; }
+        if (vert[i].y < bbox.ymin) { bbox.ymin = vert[i].y; }
+        if (vert[i].y > bbox.ymax) { bbox.ymax = vert[i].y; }
+        if (vert[i].z < bbox.zmin) { bbox.zmin = vert[i].z; }
+        if (vert[i].z > bbox.zmax) { bbox.zmax = vert[i].z; }
+    }
+    return bbox;
 }

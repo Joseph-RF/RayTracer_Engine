@@ -1,6 +1,9 @@
 #pragma once
 
+#include <vector>
+
 #include <shader.hpp>
+#include <aabb.hpp>
 
 class GameObject
 {
@@ -10,5 +13,11 @@ public:
 	float size;
 	glm::vec3 colour;
 
+	AABB bbox;
+
 	virtual void draw(Shader& shader) = 0;
+	virtual AABB update_bounding_box() = 0;
+
+private:
+
 };

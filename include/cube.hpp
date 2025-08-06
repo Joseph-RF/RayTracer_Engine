@@ -13,9 +13,12 @@ public:
 
 	void draw(Shader& shader) override;
 
+	AABB update_bounding_box() override;
+
 	static void init();
 
 private:
+
 	static unsigned int VBO;
 	static unsigned int EBO;
 	static unsigned int VAO;

@@ -1,12 +1,17 @@
+#include "engine.hpp"
+#include "engine.hpp"
+#include "engine.hpp"
 #include <engine.hpp>
 
 Engine::Engine(float window_x, float window_y) : window_x(window_x), window_y(window_y) {
 	active_camera = &engine_camera;
+	mouseover_object = NULL;
 	selected_object = NULL;
 }
 
 void Engine::init() {
 	gameobject_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl");
+	outline_shader = Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl");
 
 	// Initialise the cube class
 	Cube::init();
@@ -17,11 +22,19 @@ void Engine::init() {
 		1.0,
 		glm::vec3(0.0, 0.8, 0.0))
 	);
-	selected_object = game_objects[0];
+	game_objects.push_back(std::make_shared<Cube>(
+		glm::vec3(-2.0, -2.0, 1.0),
+		glm::vec3(0.0, 0.0, 0.0),
+		1.0,
+		glm::vec3(0.0, 0.0, 0.6))
+	);
 }
 
 void Engine::update() {
-
+	// Update the bounding box of the currently selected object
+	if (selected_object) {
+		selected_object->update_bounding_box();
+	}
 }
 
 void Engine::render() {
@@ -31,13 +44,41 @@ void Engine::render() {
 	glm::mat4 projection(1.0);
 	
 	view = active_camera->lookAt();
-	projection = glm::perspective(glm::radians(active_camera->fov), (window_x / window_y), 0.1f, 100.f);
+	projection = glm::perspective(
+		glm::radians(active_camera->fov), (window_x / window_y), 0.1f, 100.f
+	);
 
+	gameobject_shader.use();
 	gameobject_shader.setMat("view", view);
 	gameobject_shader.setMat("projection", projection);
 
-	for (unsigned int i = 0; i < game_objects.size(); ++i) {
+	outline_shader.use();
+	outline_shader.setMat("view", view);
+	outline_shader.setMat("projection", projection);
+
+	for (int i = 0; i < game_objects.size(); ++i) {
+		if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
+			glStencilMask(0xFF);
+			glStencilFunc(GL_ALWAYS, 1, 0xFF);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+		}
 		game_objects[i]->draw(gameobject_shader);
+
+		if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
+			game_objects[i]->size *= 1.05;
+			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+			glStencilMask(0x00);
+
+			glDisable(GL_DEPTH_TEST);
+
+			game_objects[i]->draw(outline_shader);
+
+			glStencilFunc(GL_ALWAYS, 1, 0xFF);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+			glEnable(GL_DEPTH_TEST);
+			glStencilMask(0xFF);
+			game_objects[i]->size /= 1.05;
+		}
 	}
 }
 
@@ -55,4 +96,100 @@ void Engine::render_imgui() {
 		ImGui::ColorEdit3("Selected object colour", glm::value_ptr(selected_object->colour));
 	}
 	ImGui::End();
+}
+
+void Engine::mouseObjectsIntersect(float mouse_x, float mouse_y) {
+	glm::vec3 mouse_direction = mouseRaycast(mouse_x, mouse_y);
+
+	// Keep track of whether any object is under the mouse
+	bool mouseover = false;
+
+	for (unsigned int i = 0; i < game_objects.size(); ++i) {
+		if (mouseIntersectsBoundingBox(mouse_direction, game_objects[i])) {
+			if (selected_object == game_objects[i] && selected_object) {
+				// Ignore this check if the item currently being hovered over is the
+				// selected object. Ensure selected_object is an actual object and not
+				// just NULL
+				continue;
+			}
+			mouseover = true;
+			mouseover_object = game_objects[i];
+		}
+	}
+	if (!mouseover) {
+		// If no object has mouse over it, set mouseover_object to NULL
+		mouseover_object = NULL;
+	}
+}
+
+glm::vec3 Engine::mouseRaycast(float mouse_x, float mouse_y) {
+	// Mouse position in x and y with it's z at the very far end of the 
+	// NDC space
+	glm::vec3 mouse_ndc(
+		(2.0f * mouse_x - window_x) / window_x,
+		(window_y - 2.0f * mouse_y) / window_y,
+		1.0f
+	);
+	
+	// Mouse in clip space with x and y, z is set at just one unit in front of the camera
+	// w coordinate set to 1 to keep things simple
+	glm::vec4 mouse_clip = glm::vec4(mouse_ndc.x, mouse_ndc.y, 1.0, 1.0);
+
+	glm::mat4 projection = glm::perspective(
+		glm::radians(active_camera->fov), (window_x / window_y), 0.1f, 100.f
+	);
+
+	glm::mat4 view = active_camera->lookAt();
+	
+	// Find position of the mouse in world space coordinates using the inverse
+	// transformation of clip space -> world space
+	glm::vec4 mouse_world = glm::inverse(projection * view) * mouse_clip;
+	mouse_world /= mouse_world.w;
+
+	// Find the direction of the vector pointing FROM the camera TO the mouse
+	glm::vec3 mouse_ray_direction = glm::normalize(glm::vec3(mouse_world) - active_camera->pos);
+
+	return mouse_ray_direction;
+}
+
+bool Engine::mouseIntersectsBoundingBox(
+	glm::vec3 mouse_direction,
+	std::shared_ptr<GameObject> object
+) {
+
+	glm::vec3 dirfrac;
+	dirfrac.x = 1.0f / mouse_direction.x;
+	dirfrac.y = 1.0f / mouse_direction.y;
+	dirfrac.z = 1.0f / mouse_direction.z;
+
+	AABB bbox = object->bbox;
+	
+	float t1 = (object->bbox.xmin - active_camera->pos.x) * dirfrac.x;
+	float t2 = (object->bbox.xmax - active_camera->pos.x) * dirfrac.x;
+	float t3 = (object->bbox.ymin - active_camera->pos.y) * dirfrac.y;
+	float t4 = (object->bbox.ymax - active_camera->pos.y) * dirfrac.y;
+	float t5 = (object->bbox.zmin - active_camera->pos.z) * dirfrac.z;
+	float t6 = (object->bbox.zmax - active_camera->pos.z) * dirfrac.z;
+
+	float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
+	float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
+
+	// if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
+	if (tmax < 0){
+		return false;
+	}
+
+	// if tmin > tmax, ray doesn't intersect AABB
+	if (tmin > tmax) {
+		return false;
+	}
+
+	return true;
+}
+
+void Engine::processMouseClick() {
+	if (mouseover_object) {
+		selected_object = mouseover_object;
+		mouseover_object = NULL;
+	}
 }
