@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include <shader.hpp>
 #include <aabb.hpp>
@@ -14,6 +15,7 @@ public:
 	glm::vec3 colour;
 
 	AABB bbox;
+	std::string name;
 
 	virtual void draw(Shader& shader) = 0;
 	virtual AABB update_bounding_box() = 0;

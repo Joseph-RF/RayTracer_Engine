@@ -27,8 +27,8 @@ void processInput(GLFWwindow* window);
 // and positions change frequently.
 
 // Window size
-const float window_x = 1200.f;
-const float window_y = 800.f;
+const float window_x = 1900.f;
+const float window_y = 1080.f;
 
 // Camera
 Camera camera;
@@ -176,8 +176,8 @@ int main() {
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    // Update the OpenGL viewport whenever GLFW window is resized.
-    // Can do anything in this function (if we want to)
+    // Update the OpenGL viewport and engine whenever GLFW window is resized.
+    engine.set_window_size(width, height);
     glViewport(0, 0, width, height);
 }
 

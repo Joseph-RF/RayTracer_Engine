@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <map>
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -31,8 +32,12 @@ public:
 
 	void processMouseClick();
 
+	void set_window_size(float window_x, float window_y);
+
 	Camera* active_camera;
 private:
+	void addCube(glm::vec3 pos, glm::vec3 orientation, float size, glm::vec3 colour);
+
 	float window_x;
 	float window_y;
 
@@ -46,4 +51,11 @@ private:
 	std::shared_ptr<GameObject> selected_object;
 
 	std::vector<std::shared_ptr<GameObject>> game_objects;
+	std::map<std::string, unsigned int> game_objects_name_map;
+
+	// Data for placeholder object
+	glm::vec3 placeholder_pos;
+	glm::vec3 placeholder_orientation;
+	float placeholder_size;
+	glm::vec3 placeholder_colour;
 };

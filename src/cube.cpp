@@ -11,6 +11,7 @@ Cube::Cube(glm::vec3 pos, glm::vec3 orientation, float size, glm::vec3 colour) {
 	this->colour = colour;
 
     update_bounding_box();
+    name = "NO_NAME";
 }
 
 void Cube::draw(Shader& shader) {
