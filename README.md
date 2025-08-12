@@ -86,6 +86,7 @@ cmake --build .
 This section is to list bugs or limitations of the project
 
 * Inconsistent behaviour with the outline function. Sometimes object selected will be visible behind others, other times it won't. Most likely related to which is drawn first.
+* Lighting not behaving as expected. Excluding spectral component of lighting seems to fix things. Spectral component of lighting disabled for now.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
