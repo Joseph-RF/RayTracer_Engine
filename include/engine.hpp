@@ -36,7 +36,15 @@ public:
 
 	Camera* active_camera;
 private:
-	void addCube(glm::vec3 pos, glm::vec3 orientation, float size, glm::vec3 colour);
+	void addCube(
+		glm::vec3 pos,
+		glm::vec3 orientation,
+		float size,
+		glm::vec3 colour,
+		float shininess
+	);
+
+	void update_shader_lights(Shader& shader);
 
 	float window_x;
 	float window_y;
@@ -46,6 +54,7 @@ private:
 
 	Shader gameobject_shader;
 	Shader outline_shader;
+	Shader light_shader;
 
 	std::shared_ptr<GameObject> mouseover_object;
 	std::shared_ptr<GameObject> selected_object;
@@ -58,4 +67,10 @@ private:
 	glm::vec3 placeholder_orientation;
 	float placeholder_size;
 	glm::vec3 placeholder_colour;
+	float placeholder_shininess;
+
+	Light placeholder_light;
+
+	unsigned int num_lights;
+	int max_lights;
 };

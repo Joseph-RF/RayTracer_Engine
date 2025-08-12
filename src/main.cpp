@@ -138,7 +138,7 @@ int main() {
         processInput(window);
 
         // Set the colour that the buffer will be cleared with.
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // State setting function
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // State setting function
 
         // Clear buffer with colour set
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // State using function

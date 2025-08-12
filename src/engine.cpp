@@ -9,11 +9,17 @@ Engine::Engine(float window_x, float window_y) : window_x(window_x), window_y(wi
 	placeholder_orientation = glm::vec3(0.0, 0.0, 0.0);
 	placeholder_size = 1.0f;
 	placeholder_colour = glm::vec3(0.0, 0.0, 0.0);
+
+	placeholder_light = Light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
+
+	max_lights = 16;
+	num_lights = 0;
 }
 
 void Engine::init() {
 	gameobject_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl");
 	outline_shader = Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl");
+	light_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl");
 
 	// Initialise the cube class
 	Cube::init();
@@ -22,13 +28,15 @@ void Engine::init() {
 		glm::vec3(8.0, -2.0, 1.0),
 		glm::vec3(0.0, 0.0, 0.0),
 		1.0,
-		glm::vec3(0.0, 0.8, 0.0)
+		glm::vec3(0.0, 0.8, 0.0),
+		32.0
 	);
 	addCube(
 		glm::vec3(-2.0, -2.0, 1.0),
 		glm::vec3(0.0, 0.0, 0.0),
 		1.0,
-		glm::vec3(0.0, 0.0, 0.6)
+		glm::vec3(0.0, 0.0, 0.6),
+		32.0
 	);
 }
 
@@ -42,21 +50,24 @@ void Engine::update() {
 void Engine::render() {
 
 	// View and projection matrices won't change between objects
-	glm::mat4 view(1.0);
-	glm::mat4 projection(1.0);
-	
-	view = active_camera->lookAt();
-	projection = glm::perspective(
+	glm::mat4 view = active_camera->lookAt();
+	glm::mat4 projection = glm::perspective(
 		glm::radians(active_camera->fov), (window_x / window_y), 0.1f, 100.f
 	);
 
 	gameobject_shader.use();
 	gameobject_shader.setMat("view", view);
 	gameobject_shader.setMat("projection", projection);
+	update_shader_lights(gameobject_shader);
+	gameobject_shader.setInt("point_lights_number", num_lights);
 
 	outline_shader.use();
 	outline_shader.setMat("view", view);
 	outline_shader.setMat("projection", projection);
+
+	light_shader.use();
+	light_shader.setMat("view", view);
+	light_shader.setMat("projection", projection);
 
 	for (int i = 0; i < game_objects.size(); ++i) {
 		
@@ -66,7 +77,14 @@ void Engine::render() {
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		}
 		
-		game_objects[i]->draw(gameobject_shader);
+		// Draw lights one way, objects in another
+		if (game_objects[i]->light) {
+			game_objects[i]->draw(light_shader);
+		}
+		else {
+			game_objects[i]->draw(gameobject_shader);
+		}
+
 
 		if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
 			game_objects[i]->size *= 1.05;
@@ -97,14 +115,57 @@ void Engine::render_imgui() {
 		ImGui::Text("This is the object editor tab");
 
 		if (selected_object) {
-			ImGui::SliderFloat("Selected object x position", &selected_object->pos.x, -50, 50);
-			ImGui::SliderFloat("Selected object y position", &selected_object->pos.y, -50, 50);
-			ImGui::SliderFloat("Selected object z position", &selected_object->pos.z, -50, 50);
-			ImGui::SliderFloat("Selected object x orientation", &selected_object->orientation.x, -3.14, 3.14);
-			ImGui::SliderFloat("Selected object y orientation", &selected_object->orientation.y, -3.14, 3.14);
-			ImGui::SliderFloat("Selected object z orientation", &selected_object->orientation.z, -3.14, 3.14);
-			ImGui::SliderFloat("Selected object scale", &selected_object->size, 0.1, 10);
-			ImGui::ColorEdit3("Selected object colour", glm::value_ptr(selected_object->colour));
+			ImGui::SliderFloat(
+				"Selected object x position", &selected_object->pos.x, -50, 50
+			);
+			ImGui::SliderFloat(
+				"Selected object y position", &selected_object->pos.y, -50, 50
+			);
+			ImGui::SliderFloat(
+				"Selected object z position", &selected_object->pos.z, -50, 50
+			);
+			ImGui::SliderFloat(
+				"Selected object x orientation", &selected_object->orientation.x, -3.14, 3.14
+			);
+			ImGui::SliderFloat(
+				"Selected object y orientation", &selected_object->orientation.y, -3.14, 3.14
+			);
+			ImGui::SliderFloat(
+				"Selected object z orientation", &selected_object->orientation.z, -3.14, 3.14
+			);
+			ImGui::SliderFloat(
+				"Selected object scale", &selected_object->size, 0.1, 10
+			);
+			ImGui::ColorEdit3(
+				"Selected object colour", glm::value_ptr(selected_object->colour)
+			);
+
+			if (selected_object->light) {
+				ImGui::SliderFloat(
+					"Selected light ambient factor",
+					&selected_object->light->ambient, 0, 1
+				);
+				ImGui::SliderFloat(
+					"Selected light diffuse factor",
+					&selected_object->light->diffuse, 0, 1
+				);
+				ImGui::SliderFloat(
+					"Selected light specular factor",
+					&selected_object->light->specular, 0, 1
+				);
+				ImGui::SliderFloat(
+					"Selected light constant attenuation factor",
+					&selected_object->light->constant, 0, 4
+				);
+				ImGui::SliderFloat(
+					"Selected light linear attenuation factor",
+					&selected_object->light->linear, 0, 0.5
+				);
+				ImGui::SliderFloat(
+					"Selected light quadratic attenuation factor",
+					&selected_object->light->quadratic, 0, 0.1
+				);
+			}
 
 			/*
 			char temp_name[255] = "";
@@ -159,6 +220,7 @@ void Engine::render_imgui() {
 		ImGui::SliderFloat("Selected object y orientation", &placeholder_orientation.y, -3.14, 3.14);
 		ImGui::SliderFloat("Selected object z orientation", &placeholder_orientation.z, -3.14, 3.14);
 		ImGui::SliderFloat("Selected object scale", &placeholder_size, 0.1, 10);
+		ImGui::SliderFloat("Selected object shininess", &placeholder_shininess, 0.1, 64);
 		ImGui::ColorEdit3("Selected object colour", glm::value_ptr(placeholder_colour));
 
 		if (ImGui::Button("Add Object")) {
@@ -166,10 +228,67 @@ void Engine::render_imgui() {
 				placeholder_pos,
 				placeholder_orientation,
 				placeholder_size,
-				placeholder_colour
+				placeholder_colour,
+				placeholder_shininess
 			);
 			selected_object = game_objects[game_objects.size() - 1];
 			mouseover_object = NULL;
+		}
+
+		ImGui::Text("Configure the parameters below to add a cube shaped light");
+
+		ImGui::SliderFloat(
+			"Selected light ambient factor",
+			&placeholder_light.ambient, 0, 1
+		);
+		ImGui::SliderFloat(
+			"Selected light diffuse factor",
+			&placeholder_light.diffuse, 0, 1
+		);
+		ImGui::SliderFloat(
+			"Selected light specular factor",
+			&placeholder_light.specular, 0, 1
+		);
+		ImGui::SliderFloat(
+			"Selected light constant attenuation factor",
+			&placeholder_light.constant, 0, 4
+		);
+		ImGui::SliderFloat(
+			"Selected light linear attenuation factor",
+			&placeholder_light.linear, 0, 0.5
+		);
+		ImGui::SliderFloat(
+			"Selected light quadratic attenuation factor",
+			&placeholder_light.quadratic, 0, 0.1
+		);
+
+		if (ImGui::Button("Add Light Object")) {
+			if (num_lights >= max_lights) {
+				std::cout<<"Max number of lights reached"<<std::endl;
+			} else {
+				unsigned int n = game_objects.size();
+				addCube(
+					placeholder_pos,
+					placeholder_orientation,
+					placeholder_size,
+					placeholder_colour,
+					placeholder_shininess
+				);
+
+				game_objects[n]->add_light(
+					placeholder_light.ambient,
+					placeholder_light.diffuse,
+					placeholder_light.specular,
+					placeholder_light.constant,
+					placeholder_light.linear,
+					placeholder_light.quadratic
+				);
+
+				num_lights++;
+
+				selected_object = game_objects[n];
+				mouseover_object = NULL;
+			}
 		}
 
 		ImGui::EndTabItem();
@@ -280,11 +399,68 @@ void Engine::set_window_size(float window_x, float window_y) {
 	this->window_y = window_y;
 }
 
-void Engine::addCube(glm::vec3 pos, glm::vec3 orientation, float size, glm::vec3 colour) {
+void Engine::addCube(
+	glm::vec3 pos,
+	glm::vec3 orientation,
+	float size,
+	glm::vec3 colour,
+	float shininess
+) {
 	// Use this number to name the object (cube)
 	unsigned int n = game_objects.size();
 
-	game_objects.push_back(std::make_shared<Cube>(pos, orientation, size, colour));
+	game_objects.push_back(
+		std::make_shared<Cube>(pos, orientation, size, colour, shininess)
+	);
 
 	game_objects[n]->name = "Object_" + std::to_string(n);
+}
+
+void Engine::update_shader_lights(Shader &shader) {
+	shader.use();
+	unsigned int counter = 0;
+
+	for (unsigned int i = 0; i < game_objects.size(); ++i) {
+
+		if (counter > max_lights) {
+			std::cout << "Counter somehow greater than number of max light" << std::endl;
+		}
+
+		if (game_objects[i]->light) {
+			shader.setVec3(
+				"point_lights[" + std::to_string(counter) + "].position",
+				game_objects[i]->pos
+			);
+			shader.setVec3(
+				"point_lights[" + std::to_string(counter) + "].colour",
+				game_objects[i]->colour
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].ambient",
+				game_objects[i]->light->ambient
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].diffuse",
+				game_objects[i]->light->diffuse
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].specular",
+				game_objects[i]->light->specular
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].constant",
+				game_objects[i]->light->constant
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].linear",
+				game_objects[i]->light->linear
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].quadratic",
+				game_objects[i]->light->quadratic
+			);
+
+			counter++;
+		}
+	}
 }
