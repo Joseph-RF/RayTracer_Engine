@@ -7,8 +7,9 @@ Engine::Engine(float window_x, float window_y) : window_x(window_x), window_y(wi
 
 	placeholder_pos = glm::vec3(0.0, 0.0, 0.0);
 	placeholder_orientation = glm::vec3(0.0, 0.0, 0.0);
-	placeholder_size = 1.0f;
+	placeholder_scale = glm::vec3(1.0, 1.0, 1.0);
 	placeholder_colour = glm::vec3(0.0, 0.0, 0.0);
+	placeholder_shininess = 32.0f;
 
 	placeholder_light = Light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
 
@@ -21,20 +22,20 @@ void Engine::init() {
 	outline_shader = Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl");
 	light_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl");
 
-	// Initialise the cube class
+	// Initialise Cube static variables that need OpenGL to exist
 	Cube::init();
 
 	addCube(
 		glm::vec3(8.0, -2.0, 1.0),
 		glm::vec3(0.0, 0.0, 0.0),
-		1.0,
+		glm::vec3(1.0, 1.0, 1.0),
 		glm::vec3(0.0, 0.8, 0.0),
 		32.0
 	);
 	addCube(
 		glm::vec3(-2.0, -2.0, 1.0),
 		glm::vec3(0.0, 0.0, 0.0),
-		1.0,
+		glm::vec3(1.0, 1.0, 1.0),
 		glm::vec3(0.0, 0.0, 0.6),
 		32.0
 	);
@@ -61,20 +62,16 @@ void Engine::render() {
 	update_shader_lights(gameobject_shader);
 	gameobject_shader.setInt("point_lights_number", num_lights);
 
-	outline_shader.use();
-	outline_shader.setMat("view", view);
-	outline_shader.setMat("projection", projection);
-
 	light_shader.use();
 	light_shader.setMat("view", view);
 	light_shader.setMat("projection", projection);
 
+	// Draw objects that don't need to be outlined first first
+
 	for (int i = 0; i < game_objects.size(); ++i) {
-		
+
 		if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
-			glStencilMask(0xFF);
-			glStencilFunc(GL_ALWAYS, 1, 0xFF);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+			continue;
 		}
 		
 		// Draw lights one way, objects in another
@@ -84,24 +81,19 @@ void Engine::render() {
 		else {
 			game_objects[i]->draw(gameobject_shader);
 		}
-
-
-		if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
-			game_objects[i]->size *= 1.05;
-			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-			glStencilMask(0x00);
-
-			glDisable(GL_DEPTH_TEST);
-
-			game_objects[i]->draw(outline_shader);
-
-			glStencilFunc(GL_ALWAYS, 1, 0xFF);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-			glEnable(GL_DEPTH_TEST);
-			glStencilMask(0xFF);
-			game_objects[i]->size /= 1.05;
-		}
 	}
+
+	// Draw objects that need to be outlined
+	outline_shader.use();
+	outline_shader.setMat("view", view);
+	outline_shader.setMat("projection", projection);
+
+	render_outlined_object();
+
+	// Draw wireframe box representing the bounding box around objects that are
+	// selected or mouseover'd
+	if(mouseover_object) { render_bbox(mouseover_object, view, projection); }
+	if(selected_object) { render_bbox(selected_object, view, projection); }
 }
 
 void Engine::render_imgui() {
@@ -112,57 +104,67 @@ void Engine::render_imgui() {
 	// -------------------------------------
 	bool boolean = true;
 	if (ImGui::BeginTabItem("Object Editor", &boolean, ImGuiTabItemFlags_None)) {
-		ImGui::Text("This is the object editor tab");
+		ImGui::Text("Modify the selected objects properties");
 
 		if (selected_object) {
 			ImGui::SliderFloat(
-				"Selected object x position", &selected_object->pos.x, -50, 50
+				"x position", &selected_object->pos.x, -50, 50
 			);
 			ImGui::SliderFloat(
-				"Selected object y position", &selected_object->pos.y, -50, 50
+				"y position", &selected_object->pos.y, -50, 50
 			);
 			ImGui::SliderFloat(
-				"Selected object z position", &selected_object->pos.z, -50, 50
+				"z position", &selected_object->pos.z, -50, 50
 			);
 			ImGui::SliderFloat(
-				"Selected object x orientation", &selected_object->orientation.x, -3.14, 3.14
+				"x orientation", &selected_object->orientation.x, -3.14, 3.14
 			);
 			ImGui::SliderFloat(
-				"Selected object y orientation", &selected_object->orientation.y, -3.14, 3.14
+				"y orientation", &selected_object->orientation.y, -3.14, 3.14
 			);
 			ImGui::SliderFloat(
-				"Selected object z orientation", &selected_object->orientation.z, -3.14, 3.14
+				"z orientation", &selected_object->orientation.z, -3.14, 3.14
 			);
 			ImGui::SliderFloat(
-				"Selected object scale", &selected_object->size, 0.1, 10
+				"Size scale factor in x axis", &selected_object->scale.x, 0.1, 10
+			);
+			ImGui::SliderFloat(
+				"Size scale factor in y axis", &selected_object->scale.y, 0.1, 10
+			);
+			ImGui::SliderFloat(
+				"Size scale factor in z axis", &selected_object->scale.z, 0.1, 10
 			);
 			ImGui::ColorEdit3(
-				"Selected object colour", glm::value_ptr(selected_object->colour)
+				"Colour", glm::value_ptr(selected_object->colour)
+			);
+			ImGui::SliderFloat(
+				"Shininess", &selected_object->shininess, 0.0f, 100.0f
 			);
 
 			if (selected_object->light) {
+				ImGui::Text("Modify the selected object's light properties");
 				ImGui::SliderFloat(
-					"Selected light ambient factor",
+					"Ambient factor",
 					&selected_object->light->ambient, 0, 1
 				);
 				ImGui::SliderFloat(
-					"Selected light diffuse factor",
+					"Diffuse factor",
 					&selected_object->light->diffuse, 0, 1
 				);
 				ImGui::SliderFloat(
-					"Selected light specular factor",
+					"Specular factor",
 					&selected_object->light->specular, 0, 1
 				);
 				ImGui::SliderFloat(
-					"Selected light constant attenuation factor",
+					"Constant attenuation factor",
 					&selected_object->light->constant, 0, 4
 				);
 				ImGui::SliderFloat(
-					"Selected light linear attenuation factor",
+					"Linear attenuation factor",
 					&selected_object->light->linear, 0, 0.5
 				);
 				ImGui::SliderFloat(
-					"Selected light quadratic attenuation factor",
+					"Quadratic attenuation factor",
 					&selected_object->light->quadratic, 0, 0.1
 				);
 			}
@@ -216,10 +218,24 @@ void Engine::render_imgui() {
 		ImGui::SliderFloat("Selected object x position", &placeholder_pos.x, -50, 50);
 		ImGui::SliderFloat("Selected object y position", &placeholder_pos.y, -50, 50);
 		ImGui::SliderFloat("Selected object z position", &placeholder_pos.z, -50, 50);
-		ImGui::SliderFloat("Selected object x orientation", &placeholder_orientation.x, -3.14, 3.14);
-		ImGui::SliderFloat("Selected object y orientation", &placeholder_orientation.y, -3.14, 3.14);
-		ImGui::SliderFloat("Selected object z orientation", &placeholder_orientation.z, -3.14, 3.14);
-		ImGui::SliderFloat("Selected object scale", &placeholder_size, 0.1, 10);
+		ImGui::SliderFloat(
+			"Selected object x orientation", &placeholder_orientation.x, -3.14, 3.14
+		);
+		ImGui::SliderFloat(
+			"Selected object y orientation", &placeholder_orientation.y, -3.14, 3.14
+		);
+		ImGui::SliderFloat(
+			"Selected object z orientation", &placeholder_orientation.z, -3.14, 3.14
+		);
+		ImGui::SliderFloat(
+			"Selected object scale factor in x axis", &placeholder_scale.x, 0.1, 10
+		);
+		ImGui::SliderFloat(
+			"Selected object scale factor in y axis", &placeholder_scale.y, 0.1, 10
+		);
+		ImGui::SliderFloat(
+			"Selected object scale factor in z axis", &placeholder_scale.z, 0.1, 10
+		);
 		ImGui::SliderFloat("Selected object shininess", &placeholder_shininess, 0.1, 64);
 		ImGui::ColorEdit3("Selected object colour", glm::value_ptr(placeholder_colour));
 
@@ -227,7 +243,7 @@ void Engine::render_imgui() {
 			addCube(
 				placeholder_pos,
 				placeholder_orientation,
-				placeholder_size,
+				placeholder_scale,
 				placeholder_colour,
 				placeholder_shininess
 			);
@@ -270,7 +286,7 @@ void Engine::render_imgui() {
 				addCube(
 					placeholder_pos,
 					placeholder_orientation,
-					placeholder_size,
+					placeholder_scale,
 					placeholder_colour,
 					placeholder_shininess
 				);
@@ -356,13 +372,12 @@ bool Engine::mouseIntersectsBoundingBox(
 	glm::vec3 mouse_direction,
 	std::shared_ptr<GameObject> object
 ) {
-
 	glm::vec3 dirfrac;
 	dirfrac.x = 1.0f / mouse_direction.x;
 	dirfrac.y = 1.0f / mouse_direction.y;
 	dirfrac.z = 1.0f / mouse_direction.z;
 
-	AABB bbox = object->bbox;
+	object->update_bounding_box();
 	
 	float t1 = (object->bbox.xmin - active_camera->pos.x) * dirfrac.x;
 	float t2 = (object->bbox.xmax - active_camera->pos.x) * dirfrac.x;
@@ -402,7 +417,7 @@ void Engine::set_window_size(float window_x, float window_y) {
 void Engine::addCube(
 	glm::vec3 pos,
 	glm::vec3 orientation,
-	float size,
+	glm::vec3 scale,
 	glm::vec3 colour,
 	float shininess
 ) {
@@ -410,10 +425,94 @@ void Engine::addCube(
 	unsigned int n = game_objects.size();
 
 	game_objects.push_back(
-		std::make_shared<Cube>(pos, orientation, size, colour, shininess)
+		std::make_shared<Cube>(pos, orientation, scale, colour, shininess)
 	);
 
 	game_objects[n]->name = "Object_" + std::to_string(n);
+}
+
+void Engine::render_outlined_object() {
+
+	glStencilMask(0xFF);
+	glStencilFunc(GL_ALWAYS, 1, 0xFF);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	// Draw selected object
+	if (selected_object) {
+
+		if (selected_object->light) {
+			selected_object->draw(light_shader);
+		}
+		else {
+			selected_object->draw(gameobject_shader);
+		}
+		// Draw outline of selected object
+		selected_object->scale *= 1.05;
+		glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+		glStencilMask(0x00);
+
+		glDisable(GL_DEPTH_TEST);
+
+		selected_object->draw(outline_shader);
+
+		glStencilFunc(GL_ALWAYS, 1, 0xFF);
+		glEnable(GL_DEPTH_TEST);
+		glStencilMask(0xFF);
+		selected_object->scale /= 1.05;
+	}
+
+	// Draw mouseover object
+	if (mouseover_object) {
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+		if (mouseover_object->light) {
+			mouseover_object->draw(light_shader);
+		}
+		else {
+			mouseover_object->draw(gameobject_shader);
+		}
+
+		// Draw outline of mouseover object
+		mouseover_object->scale *= 1.05;
+		glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+		glStencilMask(0x00);
+
+		glDisable(GL_DEPTH_TEST);
+
+		mouseover_object->draw(outline_shader);
+
+		// Reset mouseover object size and stencil, depth buffer settings
+		glStencilFunc(GL_ALWAYS, 1, 0xFF);
+		glEnable(GL_DEPTH_TEST);
+		glStencilMask(0xFF);
+		mouseover_object->scale /= 1.05;
+	}
+
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+}
+
+void Engine::render_bbox(
+	std::shared_ptr<GameObject> game_object,
+	glm::mat4& view,
+	glm::mat4& projection
+) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	bbox_wireframe.pos = game_object->pos;
+	bbox_wireframe.colour = game_object->colour;
+
+	bbox_wireframe.scale.x = game_object->bbox.xmax - game_object->bbox.xmin;
+	bbox_wireframe.scale.y = game_object->bbox.ymax - game_object->bbox.ymin;
+	bbox_wireframe.scale.z = game_object->bbox.zmax - game_object->bbox.zmin;
+
+	// Going to use a simple fragment shader for the wireframe box
+	light_shader.use();
+	light_shader.setMat("projection", projection);
+	light_shader.setMat("view", view);
+	bbox_wireframe.draw(light_shader);
+
+	// Set polygon mode back to normal after rendering the wireframe box
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Engine::update_shader_lights(Shader &shader) {

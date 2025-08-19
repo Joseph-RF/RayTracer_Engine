@@ -1,4 +1,3 @@
-#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
@@ -14,6 +13,7 @@
 #include <shader.hpp>
 #include <camera.hpp>
 #include <engine.hpp>
+#include <imgui_utility.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos);
@@ -27,8 +27,8 @@ void processInput(GLFWwindow* window);
 // and positions change frequently.
 
 // Window size
-const float window_x = 1900.f;
-const float window_y = 1080.f;
+const float window_x = 1200.f;
+const float window_y = 800.f;
 
 // Camera
 Camera camera;
@@ -118,6 +118,10 @@ int main() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    // Set ImGui style using utility function
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImGui_Utility::setStyle(style);
 
     // Initialise the engine
     engine.init();
@@ -255,6 +259,12 @@ void processInput(GLFWwindow* window) {
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         engine.active_camera->processKeyboard(DOWN, delta_time);
+    }
+    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS) {
+        SceneSaver::saveScene(engine);
+    }
+    if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS) {
+        SceneSaver::loadScene(engine);
     }
     if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
         m_key_pressed = true;

@@ -130,7 +130,7 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     vec3 total = vec3(0.0);
     total += ambient;
     total += diffuse;
-    //total += specular;
+    total += specular;
 
     return total;
 };
