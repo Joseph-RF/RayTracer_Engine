@@ -1,9 +1,25 @@
 #include <engine.hpp>
 
+// Public functions
+// --------------------------------------------------------------------------------------
+
 Engine::Engine(float window_x, float window_y) : window_x(window_x), window_y(window_y) {
 	active_camera = &engine_camera;
-	mouseover_object = NULL;
-	selected_object = NULL;
+	mouseover_object = nullptr;
+	selected_object = nullptr;
+	active_gizmo = nullptr;
+
+	x_arrow = std::make_shared<Arrow>();
+	y_arrow = std::make_shared<Arrow>();
+	z_arrow = std::make_shared<Arrow>();
+
+	xy_plane_gizmo = std::make_shared<Cube>();
+	xz_plane_gizmo = std::make_shared<Cube>();
+	yz_plane_gizmo = std::make_shared<Cube>();
+
+	using_gizmo = false;
+	previous_position = glm::vec3(0.0, 0.0, 0.0);
+	mouse_pressed = false;
 
 	placeholder_pos = glm::vec3(0.0, 0.0, 0.0);
 	placeholder_orientation = glm::vec3(0.0, 0.0, 0.0);
@@ -24,6 +40,42 @@ void Engine::init() {
 
 	// Initialise Cube static variables that need OpenGL to exist
 	Cube::init();
+	// Initialise Arrow static variables
+	Arrow::init();
+
+	// Set arrow gizmo properties
+	x_arrow->colour = glm::vec3(0.8, 0.0, 0.0);
+	y_arrow->colour = glm::vec3(0.0, 0.8, 0.0);
+	z_arrow->colour = glm::vec3(0.0, 0.0, 0.8);
+
+	x_arrow->orientation = glm::vec3(0.0, glm::radians(90.0f), 0.0);
+	y_arrow->orientation = glm::vec3(glm::radians(270.0f), 0.0, 0.0);
+	z_arrow->orientation = glm::vec3(0.0, 0.0, 0.0);
+
+	x_arrow->scale = glm::vec3(0.5, 0.5, 0.5);
+	y_arrow->scale = glm::vec3(0.5, 0.5, 0.5);
+	z_arrow->scale = glm::vec3(0.5, 0.5, 0.5);
+
+	x_arrow->name = "X_AXIS_MOVE";
+	y_arrow->name = "Y_AXIS_MOVE";
+	z_arrow->name = "Z_AXIS_MOVE";
+
+	// Set plane gizmo properties
+	xy_plane_gizmo->colour = glm::vec3(0.8, 0.8, 0.0);
+	xz_plane_gizmo->colour = glm::vec3(0.8, 0.0, 0.8);
+	yz_plane_gizmo->colour = glm::vec3(0.0, 0.8, 0.8);
+
+	xy_plane_gizmo->orientation = glm::vec3(0.0, 0.0, 0.0);
+	xz_plane_gizmo->orientation = glm::vec3(glm::radians(90.0f), 0.0, 0.0);
+	yz_plane_gizmo->orientation = glm::vec3(0.0, glm::radians(90.0f), 0.0);
+
+	xy_plane_gizmo->scale = glm::vec3(0.15, 0.15, 0.005);
+	xz_plane_gizmo->scale = glm::vec3(0.15, 0.15, 0.005);
+	yz_plane_gizmo->scale = glm::vec3(0.15, 0.15, 0.005);
+
+	xy_plane_gizmo->name = "XY_PLANE_MOVE";
+	xz_plane_gizmo->name = "XZ_PLANE_MOVE";
+	yz_plane_gizmo->name = "YZ_PLANE_MOVE";
 
 	addCube(
 		glm::vec3(8.0, -2.0, 1.0),
@@ -45,6 +97,27 @@ void Engine::update() {
 	// Update the bounding box of the currently selected object
 	if (selected_object) {
 		selected_object->update_bounding_box();
+
+		// Update the position and bounding boxes of the gizmos
+		x_arrow->pos = selected_object->pos + glm::vec3(0.25f * Arrow::tail_height, 0.0, 0.0);
+		y_arrow->pos = selected_object->pos + glm::vec3(0.0, 0.25f * Arrow::tail_height, 0.0);
+		z_arrow->pos = selected_object->pos + glm::vec3(0.0, 0.0, 0.25f * Arrow::tail_height);
+
+		xy_plane_gizmo->pos = selected_object->pos + glm::vec3(0.25f * Arrow::tail_height, 0.25f * Arrow::tail_height, 0.0);
+		xz_plane_gizmo->pos = selected_object->pos + glm::vec3(0.25f * Arrow::tail_height, 0.0, 0.25f * Arrow::tail_height);
+		yz_plane_gizmo->pos = selected_object->pos + glm::vec3(0.0, 0.25f * Arrow::tail_height, 0.25f * Arrow::tail_height);
+
+		x_arrow->update_bounding_box();
+		y_arrow->update_bounding_box();
+		z_arrow->update_bounding_box();
+
+		xy_plane_gizmo->update_bounding_box();
+		xz_plane_gizmo->update_bounding_box();
+		yz_plane_gizmo->update_bounding_box();
+	}
+	if (!mouse_pressed) {
+		// If the mouse has been released, reset using_gizmo
+		using_gizmo = false;
 	}
 }
 
@@ -59,7 +132,7 @@ void Engine::render() {
 	gameobject_shader.use();
 	gameobject_shader.setMat("view", view);
 	gameobject_shader.setMat("projection", projection);
-	update_shader_lights(gameobject_shader);
+	updateShaderLights(gameobject_shader);
 	gameobject_shader.setInt("point_lights_number", num_lights);
 
 	light_shader.use();
@@ -88,12 +161,15 @@ void Engine::render() {
 	outline_shader.setMat("view", view);
 	outline_shader.setMat("projection", projection);
 
-	render_outlined_object();
+	renderOutlinedObject();
 
 	// Draw wireframe box representing the bounding box around objects that are
 	// selected or mouseover'd
-	if(mouseover_object) { render_bbox(mouseover_object, view, projection); }
-	if(selected_object) { render_bbox(selected_object, view, projection); }
+	if(mouseover_object) { renderBbox(mouseover_object, view, projection); }
+	if(selected_object) {
+		renderBbox(selected_object, view, projection);
+		renderMoveGizmos(selected_object, view, projection);
+	}
 }
 
 void Engine::render_imgui() {
@@ -314,6 +390,113 @@ void Engine::render_imgui() {
 	ImGui::End();
 }
 
+void Engine::processMouseMovement(float mouse_x, float mouse_y) {
+	// Check which regular GameObjects the mouse is hovering over
+	mouseObjectsIntersect(mouse_x, mouse_y);
+
+	// Check which gizmos the mouse is hovering over if an object is currently not 
+	// selected, no gizmo visible, don't bother with checks. Avoid checks if mouse
+	// is being pressed
+	if (selected_object && !mouse_pressed) {
+		mouseGizmosIntersect(mouse_x, mouse_y);
+	}
+
+	// Mouse is over gizmo and mouse button is being pressed. Process gizmo function
+	if (active_gizmo && mouse_pressed) {
+		glm::vec3 mouse_ray = mouseRaycast(mouse_x, mouse_y);
+
+		std::string name = active_gizmo->name;
+
+		if (name == "X_AXIS_MOVE" || name == "Y_AXIS_MOVE" || name == "Z_AXIS_MOVE") {
+			gizmoAxisMoveFunction(mouse_ray, active_gizmo);
+		}
+		else {
+			gizmoPlaneFunction(mouse_ray, active_gizmo);
+		}
+	}
+}
+
+void Engine::processMouseClick() {
+	if (mouseover_object) {
+		selected_object = mouseover_object;
+		mouseover_object = NULL;
+	}
+}
+
+void Engine::setWindowSize(float window_x, float window_y) {
+	this->window_x = window_x;
+	this->window_y = window_y;
+}
+
+// Private functions
+// --------------------------------------------------------------------------------------
+
+void Engine::addCube(
+	glm::vec3 pos,
+	glm::vec3 orientation,
+	glm::vec3 scale,
+	glm::vec3 colour,
+	float shininess
+) {
+	// Use this number to name the object (cube)
+	unsigned int n = game_objects.size();
+
+	game_objects.push_back(
+		std::make_shared<Cube>(pos, orientation, scale, colour, shininess)
+	);
+
+	game_objects[n]->name = "Object_" + std::to_string(n);
+}
+
+void Engine::updateShaderLights(Shader& shader) {
+	shader.use();
+	unsigned int counter = 0;
+
+	for (unsigned int i = 0; i < game_objects.size(); ++i) {
+
+		if (counter > max_lights) {
+			std::cout << "Counter somehow greater than number of max light" << std::endl;
+		}
+
+		if (game_objects[i]->light) {
+			shader.setVec3(
+				"point_lights[" + std::to_string(counter) + "].position",
+				game_objects[i]->pos
+			);
+			shader.setVec3(
+				"point_lights[" + std::to_string(counter) + "].colour",
+				game_objects[i]->colour
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].ambient",
+				game_objects[i]->light->ambient
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].diffuse",
+				game_objects[i]->light->diffuse
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].specular",
+				game_objects[i]->light->specular
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].constant",
+				game_objects[i]->light->constant
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].linear",
+				game_objects[i]->light->linear
+			);
+			shader.setFloat(
+				"point_lights[" + std::to_string(counter) + "].quadratic",
+				game_objects[i]->light->quadratic
+			);
+
+			counter++;
+		}
+	}
+}
+
 void Engine::mouseObjectsIntersect(float mouse_x, float mouse_y) {
 	glm::vec3 mouse_direction = mouseRaycast(mouse_x, mouse_y);
 
@@ -321,7 +504,7 @@ void Engine::mouseObjectsIntersect(float mouse_x, float mouse_y) {
 	bool mouseover = false;
 
 	for (unsigned int i = 0; i < game_objects.size(); ++i) {
-		if (mouseIntersectsBoundingBox(mouse_direction, game_objects[i])) {
+		if (mouseIntersectsBoundingBox(mouse_direction, game_objects[i]->bbox)) {
 			if (selected_object == game_objects[i] && selected_object) {
 				// Ignore this check if the item currently being hovered over is the
 				// selected object. Ensure selected_object is an actual object and not
@@ -334,7 +517,44 @@ void Engine::mouseObjectsIntersect(float mouse_x, float mouse_y) {
 	}
 	if (!mouseover) {
 		// If no object has mouse over it, set mouseover_object to NULL
-		mouseover_object = NULL;
+		mouseover_object = nullptr;
+	}
+}
+
+void Engine::mouseGizmosIntersect(float mouse_x, float mouse_y) {
+	// Check if the mouse is hovering over the positions arrows
+	glm::vec3 mouse_direction = mouseRaycast(mouse_x, mouse_y);
+
+	bool mouse_over_gizmo = false;
+
+	if (mouseIntersectsBoundingBox(mouse_direction, x_arrow->bbox)) {
+		active_gizmo = x_arrow;
+		mouse_over_gizmo = true;
+	}
+	if (mouseIntersectsBoundingBox(mouse_direction, y_arrow->bbox)) {
+		active_gizmo = y_arrow;
+		mouse_over_gizmo = true;
+	}
+	if (mouseIntersectsBoundingBox(mouse_direction, z_arrow->bbox)) {
+		active_gizmo = z_arrow;
+		mouse_over_gizmo = true;
+	}
+	if (mouseIntersectsBoundingBox(mouse_direction, xy_plane_gizmo->bbox)) {
+		active_gizmo = xy_plane_gizmo;
+		mouse_over_gizmo = true;
+	}
+	if (mouseIntersectsBoundingBox(mouse_direction, xz_plane_gizmo->bbox)) {
+		active_gizmo = xz_plane_gizmo;
+		mouse_over_gizmo = true;
+	}
+	if (mouseIntersectsBoundingBox(mouse_direction, yz_plane_gizmo->bbox)) {
+		active_gizmo = yz_plane_gizmo;
+		mouse_over_gizmo = true;
+	}
+
+
+	if (!mouse_over_gizmo) {
+		active_gizmo = nullptr;
 	}
 }
 
@@ -370,21 +590,19 @@ glm::vec3 Engine::mouseRaycast(float mouse_x, float mouse_y) {
 
 bool Engine::mouseIntersectsBoundingBox(
 	glm::vec3 mouse_direction,
-	std::shared_ptr<GameObject> object
+	AABB bbox
 ) {
 	glm::vec3 dirfrac;
 	dirfrac.x = 1.0f / mouse_direction.x;
 	dirfrac.y = 1.0f / mouse_direction.y;
 	dirfrac.z = 1.0f / mouse_direction.z;
-
-	object->update_bounding_box();
 	
-	float t1 = (object->bbox.xmin - active_camera->pos.x) * dirfrac.x;
-	float t2 = (object->bbox.xmax - active_camera->pos.x) * dirfrac.x;
-	float t3 = (object->bbox.ymin - active_camera->pos.y) * dirfrac.y;
-	float t4 = (object->bbox.ymax - active_camera->pos.y) * dirfrac.y;
-	float t5 = (object->bbox.zmin - active_camera->pos.z) * dirfrac.z;
-	float t6 = (object->bbox.zmax - active_camera->pos.z) * dirfrac.z;
+	float t1 = (bbox.xmin - active_camera->pos.x) * dirfrac.x;
+	float t2 = (bbox.xmax - active_camera->pos.x) * dirfrac.x;
+	float t3 = (bbox.ymin - active_camera->pos.y) * dirfrac.y;
+	float t4 = (bbox.ymax - active_camera->pos.y) * dirfrac.y;
+	float t5 = (bbox.zmin - active_camera->pos.z) * dirfrac.z;
+	float t6 = (bbox.zmax - active_camera->pos.z) * dirfrac.z;
 
 	float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
 	float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
@@ -402,36 +620,120 @@ bool Engine::mouseIntersectsBoundingBox(
 	return true;
 }
 
-void Engine::processMouseClick() {
-	if (mouseover_object) {
-		selected_object = mouseover_object;
-		mouseover_object = NULL;
+bool Engine::rayPlaneIntersection(
+	glm::vec3& ray_origin,
+	glm::vec3& ray_direction,
+	glm::vec3& plane_normal,
+	glm::vec3& plane_position,
+	float& t
+) {
+	// Ray direction and Plane Normal MUST be normalised
+	float denom = glm::dot(plane_normal, ray_direction);
+	if (std::abs(denom) > 1e-6) {
+		glm::vec3 p0_l0 = plane_position - ray_origin;
+		t = glm::dot(p0_l0, plane_normal) / denom;
+		return (t >= 0);
+	}
+	return false;
+}
+
+glm::vec3 Engine::closestPointBetweenRays(
+	glm::vec3& ray1_origin,
+	glm::vec3& ray1_direction,
+	glm::vec3& ray2_origin,
+	glm::vec3& ray2_direction
+) {
+	// Returns the closest point between ray1 and ray2.
+	// Closest point lies on ray1.
+	// Directions MUST be normalised
+
+	glm::vec3 s_d = ray1_origin - ray2_origin;
+
+	float dadb = glm::dot(ray1_direction, ray2_direction);
+	float dasd = glm::dot(ray1_direction, s_d);
+	float dbsd = glm::dot(ray2_direction, s_d);
+	float denom = 1.0f - dadb * dadb;
+
+	if (denom == 0.0) {
+		std::cout << "rays are parallel" << std::endl;
+		return glm::vec3(0.0, 0.0, 0.0);
+	}
+
+	return ((-dasd + dadb * dbsd) / denom) * ray1_direction + ray1_origin;
+}
+
+void Engine::gizmoAxisMoveFunction(
+	glm::vec3& mouse_ray,
+	std::shared_ptr<GameObject> gizmo
+) {
+	glm::vec3 axis(0.0, 0.0, 0.0);
+
+	if (gizmo->name == "X_AXIS_MOVE") {
+		axis = glm::vec3(1.0, 0.0, 0.0);
+	}
+	else if (gizmo->name == "Y_AXIS_MOVE") {
+		axis = glm::vec3(0.0, 1.0, 0.0);
+	}
+	else if (gizmo->name == "Z_AXIS_MOVE") {
+		axis = glm::vec3(0.0, 0.0, 1.0);
+	}
+
+	glm::vec3 closest_point_on_axis = closestPointBetweenRays(
+		gizmo->pos, axis, active_camera->pos, mouse_ray
+	);
+
+	if (!using_gizmo) {
+		previous_position = closest_point_on_axis;
+		using_gizmo = true;
+	}
+	else {
+		selected_object->pos += (closest_point_on_axis - previous_position);
+		previous_position = closest_point_on_axis;
 	}
 }
 
-void Engine::set_window_size(float window_x, float window_y) {
-	this->window_x = window_x;
-	this->window_y = window_y;
-}
-
-void Engine::addCube(
-	glm::vec3 pos,
-	glm::vec3 orientation,
-	glm::vec3 scale,
-	glm::vec3 colour,
-	float shininess
+void Engine::gizmoPlaneFunction(
+	glm::vec3& mouse_ray,
+	std::shared_ptr<GameObject> gizmo
 ) {
-	// Use this number to name the object (cube)
-	unsigned int n = game_objects.size();
+	float t = 0.0; // Ray from camera to mouse parameter
+	
+	glm::vec3 axis1(0.0, 0.0, 0.0);
+	glm::vec3 axis2(0.0, 0.0, 0.0);
 
-	game_objects.push_back(
-		std::make_shared<Cube>(pos, orientation, scale, colour, shininess)
-	);
+	if (gizmo->name == "XY_PLANE_MOVE") {
+		axis1 = glm::vec3(1.0, 0.0, 0.0);
+		axis2 = glm::vec3(0.0, 1.0, 0.0);
+	}
+	else if (gizmo->name == "XZ_PLANE_MOVE") {
+		axis1 = glm::vec3(1.0, 0.0, 0.0);
+		axis2 = glm::vec3(0.0, 0.0, 1.0);
+	}
+	else if (gizmo->name == "YZ_PLANE_MOVE") {
+		axis1 = glm::vec3(0.0, 1.0, 0.0);
+		axis2 = glm::vec3(0.0, 0.0, 1.0);
+	}
+	
 
-	game_objects[n]->name = "Object_" + std::to_string(n);
+	glm::vec3 plane_normal = glm::normalize(glm::cross(axis1, axis2));
+	
+	if (!rayPlaneIntersection(active_camera->pos, mouse_ray, plane_normal, gizmo->pos, t)) {
+		return;
+	}
+
+	glm::vec3 plane_intersection = active_camera->pos + mouse_ray * t;
+
+	if (!using_gizmo) {
+		previous_position = plane_intersection;
+		using_gizmo = true;
+	}
+	else {
+		selected_object->pos += (plane_intersection - previous_position);
+		previous_position = plane_intersection;
+	}
 }
 
-void Engine::render_outlined_object() {
+void Engine::renderOutlinedObject() {
 
 	glStencilMask(0xFF);
 	glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -491,7 +793,7 @@ void Engine::render_outlined_object() {
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 }
 
-void Engine::render_bbox(
+void Engine::renderBbox(
 	std::shared_ptr<GameObject> game_object,
 	glm::mat4& view,
 	glm::mat4& projection
@@ -515,51 +817,35 @@ void Engine::render_bbox(
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Engine::update_shader_lights(Shader &shader) {
-	shader.use();
-	unsigned int counter = 0;
+void Engine::renderMoveGizmos(
+	std::shared_ptr<GameObject> game_object,
+	glm::mat4& view,
+	glm::mat4& projection
+) {
+	glDisable(GL_DEPTH_TEST);
 
-	for (unsigned int i = 0; i < game_objects.size(); ++i) {
+	light_shader.use();
+	light_shader.setMat("projection", projection);
+	light_shader.setMat("view", view);
 
-		if (counter > max_lights) {
-			std::cout << "Counter somehow greater than number of max light" << std::endl;
-		}
+	x_arrow->draw(light_shader);
+	y_arrow->draw(light_shader);
+	z_arrow->draw(light_shader);
 
-		if (game_objects[i]->light) {
-			shader.setVec3(
-				"point_lights[" + std::to_string(counter) + "].position",
-				game_objects[i]->pos
-			);
-			shader.setVec3(
-				"point_lights[" + std::to_string(counter) + "].colour",
-				game_objects[i]->colour
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].ambient",
-				game_objects[i]->light->ambient
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].diffuse",
-				game_objects[i]->light->diffuse
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].specular",
-				game_objects[i]->light->specular
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].constant",
-				game_objects[i]->light->constant
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].linear",
-				game_objects[i]->light->linear
-			);
-			shader.setFloat(
-				"point_lights[" + std::to_string(counter) + "].quadratic",
-				game_objects[i]->light->quadratic
-			);
+	xy_plane_gizmo->draw(light_shader);
+	xz_plane_gizmo->draw(light_shader);
+	yz_plane_gizmo->draw(light_shader);
 
-			counter++;
-		}
+	// Render the active gizmo but larger
+	if (active_gizmo) {
+		active_gizmo->scale *= 1.2f;
+		active_gizmo->colour *= 1.2f;
+
+		active_gizmo->draw(light_shader);
+
+		active_gizmo->scale /= 1.2f;
+		active_gizmo->colour /= 1.2f;
 	}
+
+	glEnable(GL_DEPTH_TEST);
 }

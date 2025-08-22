@@ -181,7 +181,7 @@ int main() {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     // Update the OpenGL viewport and engine whenever GLFW window is resized.
-    engine.set_window_size(width, height);
+    engine.setWindowSize(width, height);
     glViewport(0, 0, width, height);
 }
 
@@ -193,7 +193,7 @@ void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos) {
 
     // If mouse is freed
     if (!mouse_locked_invisible) {
-        engine.mouseObjectsIntersect(xpos, ypos);
+        engine.processMouseMovement(xpos, ypos);
         return;
     }
 
@@ -224,11 +224,13 @@ void scroll_callback(GLFWwindow* window, double x_offset, double y_offset) {
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         mouse_button_pressed = true;
+        engine.mouse_pressed = true;
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         if (mouse_button_pressed == true) {
             mouse_button_pressed = false;
             engine.processMouseClick();
+            engine.mouse_pressed = false;
         }
     }
 }

@@ -159,7 +159,6 @@ std::string Cube::dataToString() {
     return str;
 }
 
-
 void Cube::init() {
     float vertices[] = {
         // positions          // normals           // texture coords
