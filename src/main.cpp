@@ -5,15 +5,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 
 #include <iostream>
 
-#include <shader.hpp>
 #include <camera.hpp>
 #include <engine.hpp>
 #include <imgui_utility.hpp>
+#include <shader.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos);
@@ -27,8 +27,8 @@ void processInput(GLFWwindow* window);
 // and positions change frequently.
 
 // Window size
-const float window_x = 1200.f;
-const float window_y = 800.f;
+const float window_x = 1600.f;
+const float window_y = 900.f;
 
 // Camera
 Camera camera;
@@ -43,27 +43,27 @@ float last_frame = 0.0f; // Time of last frame
 // Mouse values
 float last_mousex = window_x / 2.f; // Set to the middle since cursor wills start there
 float last_mousey = window_y / 2.f;
-bool first_mouse = true; // Keep track of whether mouse has been moved at all
+bool first_mouse  = true; // Keep track of whether mouse has been moved at all
 
 double scroll_posy;
 double last_scrolly;
 bool first_scroll = true;
 
 bool mouse_locked_invisible = true;
-bool m_key_pressed = false;
-bool mouse_button_pressed = false;
+bool m_key_pressed          = false;
+bool mouse_button_pressed   = false;
 
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); Needed for Mac OS X
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); Needed for Mac OS X
 
     // Create GLFW window object to old window data
-    GLFWwindow* window = glfwCreateWindow(static_cast<int>(window_x), static_cast<int>(window_y), "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
+    GLFWwindow* window = glfwCreateWindow(static_cast<int>(window_x), static_cast<int>(window_y),
+                                          "LearnOpenGL", NULL, NULL);
+    if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
@@ -79,21 +79,20 @@ int main() {
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     // Initialialise GLAD in order to get access to OpenGL function pointers before
-    //using OpenGL
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    // using OpenGL
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    // Let OpenGL know the size of the viewport (can make it smaller if we want 
+    // Let OpenGL know the size of the viewport (can make it smaller if we want
     // to display other things in the GLFW window
-    glViewport(0, 0, static_cast<int>(window_x), static_cast<int>(window_y)); // x-pos of lower left corner, y-pos, width, height
+    glViewport(0, 0, static_cast<int>(window_x),
+               static_cast<int>(window_y)); // x-pos of lower left corner, y-pos, width, height
 
-    // Sets a "callback function" to be called whenever the GLFW framebuffer of the 
+    // Sets a "callback function" to be called whenever the GLFW framebuffer of the
     // window specfied is resized. Called when window is first displayed.
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
 
     // *----------------------------------------------------------------------------------*
     // | Depth Testing:  -OpenGL stores all DEPTH information within the DEPTH BUFFER     |
@@ -135,17 +134,18 @@ int main() {
         // of the camera by the time passed between frames to obtain the correct distance
         // travelled that frame
         float current_frame = static_cast<float>(glfwGetTime());
-        delta_time = current_frame - last_frame;
-        last_frame = current_frame;
+        delta_time          = current_frame - last_frame;
+        last_frame          = current_frame;
 
-        //Process inputs every frame
+        // Process inputs every frame
         processInput(window);
 
         // Set the colour that the buffer will be cleared with.
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // State setting function
 
         // Clear buffer with colour set
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // State using function
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                GL_STENCIL_BUFFER_BIT); // State using function
 
         // Imgui
         // ------------------------------------------------------------------------------
@@ -154,6 +154,9 @@ int main() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::SetNextWindowSize(ImVec2(window_x * 0.2f, window_y));
 
         // Engine rendering
         engine.render();
@@ -209,8 +212,8 @@ void mouse_callback(GLFWwindow* window, double mouse_xpos, double mouse_ypos) {
 
     float offset_x = xpos - last_mousex;
     float offset_y = ypos - last_mousey;
-    last_mousex = mouse_xpos;
-    last_mousey = mouse_ypos;
+    last_mousex    = mouse_xpos;
+    last_mousey    = mouse_ypos;
 
     engine.active_camera->processMouse(offset_x, offset_y);
 }
@@ -276,8 +279,7 @@ void processInput(GLFWwindow* window) {
             if (mouse_locked_invisible) {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
                 mouse_locked_invisible = false;
-            }
-            else {
+            } else {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                 mouse_locked_invisible = true;
                 // Reset mouse position to centre

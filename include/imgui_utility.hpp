@@ -3,5 +3,5 @@
 #include <imgui.h>
 
 namespace ImGui_Utility {
-	void setStyle(ImGuiStyle& style);
+void setStyle(ImGuiStyle& style);
 }

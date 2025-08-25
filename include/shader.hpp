@@ -5,14 +5,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <string>
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
+#include <string>
 
-
-class Shader
-{
+class Shader {
 public:
     // the program ID
     unsigned int ID;

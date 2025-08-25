@@ -26,10 +26,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         vShaderFile.close();
         fShaderFile.close();
         // convert stream into string
-        vertexCode = vShaderStream.str();
+        vertexCode   = vShaderStream.str();
         fragmentCode = fShaderStream.str();
-    }
-    catch (std::ifstream::failure e) {
+    } catch (std::ifstream::failure e) {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
     const char* vShaderCode = vertexCode.c_str();
@@ -44,12 +43,11 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glCompileShader(vertexShader);
 
     // Can check if the shader compiled correctly
-    int  success;
+    int success;
     char infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 
-    if (!success)
-    {
+    if (!success) {
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
@@ -66,8 +64,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glCompileShader(fragmentShader);
     // Check for errors
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
@@ -88,7 +85,6 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     }
     glDeleteShader(vertexShader); // Don't need these shaders, can delete them now
     glDeleteShader(fragmentShader);
-
 }
 
 void Shader::use() {

@@ -4,39 +4,34 @@ unsigned int Arrow::VBO;
 unsigned int Arrow::EBO;
 unsigned int Arrow::VAO;
 
-int Arrow::num_sectors = 20;
+int Arrow::num_sectors   = 20;
 float Arrow::tail_radius = 0.02f;
 float Arrow::tail_height = 1.0f;
 float Arrow::head_radius = 0.1f;
 float Arrow::head_height = 0.25f;
 
 Arrow::Arrow() {
-    this->pos = glm::vec3(0.0, 0.0, 0.0);
+    this->pos         = glm::vec3(0.0, 0.0, 0.0);
     this->orientation = glm::vec3(0.0, 0.0, 0.0);
-    this->scale = glm::vec3(1.0, 1.0, 1.0);
-    this->colour = glm::vec3(1.0, 1.0, 1.0);
-    this->shininess = 0.0f;
+    this->scale       = glm::vec3(1.0, 1.0, 1.0);
+    this->colour      = glm::vec3(1.0, 1.0, 1.0);
+    this->shininess   = 0.0f;
 
     update_bounding_box();
-    this->name = "NO_NAME";
+    this->name  = "NO_NAME";
     this->light = nullptr;
 }
 
-Arrow::Arrow(
-    glm::vec3 pos,
-    glm::vec3 orientation,
-    glm::vec3 scale,
-    glm::vec3 colour,
-    float shininess
-) {
-    this->pos = pos;
+Arrow::Arrow(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
+             float shininess) {
+    this->pos         = pos;
     this->orientation = orientation;
-    this->scale = scale;
-    this->colour = colour;
-    this->shininess = shininess;
+    this->scale       = scale;
+    this->colour      = colour;
+    this->shininess   = shininess;
 
     update_bounding_box();
-    name = "NO_NAME";
+    name  = "NO_NAME";
     light = nullptr;
 }
 
@@ -60,17 +55,16 @@ void Arrow::draw(Shader& shader) {
 }
 
 void Arrow::update_bounding_box() {
-    float radius = std::max(Arrow::head_radius, Arrow::tail_radius);
+    float radius                    = std::max(Arrow::head_radius, Arrow::tail_radius);
     std::vector<glm::vec3> vertices = {
         glm::vec3(-0.5f * radius, -0.5f * radius, -0.5f * tail_height),
-        glm::vec3( 0.5f * radius, -0.5f * radius, -0.5f * tail_height),
-        glm::vec3(-0.5f * radius,  0.5f * radius, -0.5f * tail_height),
-        glm::vec3( 0.5f * radius,  0.5f * radius, -0.5f * tail_height),
-        glm::vec3(-0.5f * radius, -0.5f * radius,  head_height + 0.5f * tail_height),
-        glm::vec3( 0.5f * radius, -0.5f * radius,  head_height + 0.5f * tail_height),
-        glm::vec3(-0.5f * radius,  0.5f * radius,  head_height + 0.5f * tail_height),
-        glm::vec3( 0.5f * radius,  0.5f * radius,  head_height + 0.5f * tail_height)
-    };
+        glm::vec3(0.5f * radius, -0.5f * radius, -0.5f * tail_height),
+        glm::vec3(-0.5f * radius, 0.5f * radius, -0.5f * tail_height),
+        glm::vec3(0.5f * radius, 0.5f * radius, -0.5f * tail_height),
+        glm::vec3(-0.5f * radius, -0.5f * radius, head_height + 0.5f * tail_height),
+        glm::vec3(0.5f * radius, -0.5f * radius, head_height + 0.5f * tail_height),
+        glm::vec3(-0.5f * radius, 0.5f * radius, head_height + 0.5f * tail_height),
+        glm::vec3(0.5f * radius, 0.5f * radius, head_height + 0.5f * tail_height)};
 
     for (unsigned int i = 0; i < vertices.size(); ++i) {
         glm::mat4 model(1.0f);
@@ -86,30 +80,34 @@ void Arrow::update_bounding_box() {
     // Default bbox given the cube's vertices
     // Adjust depending on the transformations
     // NOTE: Assume that it won't change later
-    bbox = AABB(vertices[0].x, vertices[0].x, vertices[0].y, vertices[0].y, vertices[0].z, vertices[0].z);
+    bbox = AABB(vertices[0].x, vertices[0].x, vertices[0].y, vertices[0].y, vertices[0].z,
+                vertices[0].z);
 
     for (unsigned int i = 1; i < vertices.size(); ++i) {
-        if (vertices[i].x < bbox.xmin) { bbox.xmin = vertices[i].x; }
-        if (vertices[i].x > bbox.xmax) { bbox.xmax = vertices[i].x; }
-        if (vertices[i].y < bbox.ymin) { bbox.ymin = vertices[i].y; }
-        if (vertices[i].y > bbox.ymax) { bbox.ymax = vertices[i].y; }
-        if (vertices[i].z < bbox.zmin) { bbox.zmin = vertices[i].z; }
-        if (vertices[i].z > bbox.zmax) { bbox.zmax = vertices[i].z; }
+        if (vertices[i].x < bbox.xmin) {
+            bbox.xmin = vertices[i].x;
+        }
+        if (vertices[i].x > bbox.xmax) {
+            bbox.xmax = vertices[i].x;
+        }
+        if (vertices[i].y < bbox.ymin) {
+            bbox.ymin = vertices[i].y;
+        }
+        if (vertices[i].y > bbox.ymax) {
+            bbox.ymax = vertices[i].y;
+        }
+        if (vertices[i].z < bbox.zmin) {
+            bbox.zmin = vertices[i].z;
+        }
+        if (vertices[i].z > bbox.zmax) {
+            bbox.zmax = vertices[i].z;
+        }
     }
-
 }
 
-void Arrow::add_light(
-    float ambient,
-    float diffuse,
-    float specular,
-    float constant,
-    float linear,
-    float quadratic
-) {
-    this->light = std::make_unique<Light>(
-        ambient, diffuse, specular, constant, linear, quadratic
-    );
+void Arrow::add_light(float ambient, float diffuse, float specular, float constant, float linear,
+                      float quadratic) {
+    this->light = std::make_unique<Light>(ambient, diffuse, specular, constant, linear, quadratic);
 }
 
 std::string Arrow::dataToString() {
@@ -149,8 +147,7 @@ std::string Arrow::dataToString() {
         str += " NOT_LIGHT ";
         str += "\n";
         return str;
-    }
-    else {
+    } else {
         str += " LIGHT ";
     }
 
@@ -168,46 +165,48 @@ std::string Arrow::dataToString() {
 }
 
 std::vector<float> Arrow::unitCircleVertices() {
-    // Return an array of the positions in 3D space of vertices around the edge of a
-    // unit circle on the XY-plane
+    // Return an array of the positions in 3D space of vertices around the edge of
+    // a unit circle on the XY-plane
 
     std::vector<float> vertices;
 
     for (int i = 0; i < Arrow::num_sectors; ++i) {
         float theta = i * (2 * 3.141592) / Arrow::num_sectors;
-        vertices.push_back(std::cos(theta));   // x
-        vertices.push_back(std::sin(theta));   // y
-        vertices.push_back(0.0f);              // z
+        vertices.push_back(std::cos(theta)); // x
+        vertices.push_back(std::sin(theta)); // y
+        vertices.push_back(0.0f);            // z
     }
 
     return vertices;
 }
 
 void Arrow::init() {
-    // Get the vertices of the cylinder from the circles on either end of the cylinder
+    // Get the vertices of the cylinder from the circles on either end of the
+    // cylinder
 
     std::vector<float> vertices;
     std::vector<float> unit_circles_vertices = unitCircleVertices();
 
-    // Add vertices for tail cylinder base first (when i = 0) then top circle (when i = 1)
+    // Add vertices for tail cylinder base first (when i = 0) then top circle
+    // (when i = 1)
     for (unsigned int i = 0; i < 2; ++i) {
         float z = (-0.5f * Arrow::tail_height) + i * Arrow::tail_height;
 
-        for (unsigned int j = 0; j < unit_circles_vertices.size(); j+=3) {
-            vertices.push_back(unit_circles_vertices[j] * Arrow::tail_radius);      // x
-            vertices.push_back(unit_circles_vertices[j + 1] * Arrow::tail_radius);  // y
-            vertices.push_back(z);                                      // z
+        for (unsigned int j = 0; j < unit_circles_vertices.size(); j += 3) {
+            vertices.push_back(unit_circles_vertices[j] * Arrow::tail_radius);     // x
+            vertices.push_back(unit_circles_vertices[j + 1] * Arrow::tail_radius); // y
+            vertices.push_back(z);                                                 // z
         }
     }
 
     // Add the vertices for the arrow head
     for (unsigned int i = 0; i < 2; ++i) {
         float radius = (1 - i) * Arrow::head_radius;
-        float z = (0.5f * Arrow::tail_height) + i * Arrow::head_height;
+        float z      = (0.5f * Arrow::tail_height) + i * Arrow::head_height;
 
         for (unsigned int j = 0; j < unit_circles_vertices.size(); j += 3) {
-            vertices.push_back(unit_circles_vertices[j] * radius);      // x
-            vertices.push_back(unit_circles_vertices[j + 1] * radius);  // y
+            vertices.push_back(unit_circles_vertices[j] * radius);     // x
+            vertices.push_back(unit_circles_vertices[j + 1] * radius); // y
             vertices.push_back(z);
         }
     }
@@ -255,7 +254,8 @@ void Arrow::init() {
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Arrow::EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
+                 GL_STATIC_DRAW);
 
     // Vertex positions
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);

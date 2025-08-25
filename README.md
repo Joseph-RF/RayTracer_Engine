@@ -73,7 +73,6 @@ cmake --build .
 <!-- FUTURE FEATURES -->
 ## Future Features
 
-* Lighting
 * Materials
 * Compatibility with the raytracer
 * Add the raytracer to the project
@@ -112,6 +111,8 @@ Project Link: [https://github.com/Joseph-RF/RayTracer_Engine](https://github.com
 Find below a list of resources that were vital/helpful for the development of this project.
 
 * [Learn OpenGL](https://learnopengl.com/)
+* [Underdisc](https://underdisc.net/index.html)
+* [Interactive Technique in Three-dimensional-Scences](https://www.codeproject.com/Articles/35139/Interactive-Techniques-in-Three-dimensional-Scenes)
 * [Ray Tracing in One Weekend Series](https://raytracing.github.io/)
 * [README Template](https://github.com/othneildrew/Best-README-Template)
 

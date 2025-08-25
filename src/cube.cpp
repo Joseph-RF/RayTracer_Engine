@@ -5,32 +5,27 @@ unsigned int Cube::EBO;
 unsigned int Cube::VAO;
 
 Cube::Cube() {
-    this->pos = glm::vec3(0.0, 0.0, 0.0);
+    this->pos         = glm::vec3(0.0, 0.0, 0.0);
     this->orientation = glm::vec3(0.0, 0.0, 0.0);
-    this->scale = glm::vec3(1.0, 1.0, 1.0);
-    this->colour = glm::vec3(1.0, 0.0, 0.0);
-    this->shininess = 32.0f;
+    this->scale       = glm::vec3(1.0, 1.0, 1.0);
+    this->colour      = glm::vec3(1.0, 0.0, 0.0);
+    this->shininess   = 32.0f;
 
     update_bounding_box();
-    name = "NO_NAME";
+    name  = "NO_NAME";
     light = nullptr;
 }
 
-Cube::Cube(
-    glm::vec3 pos,
-    glm::vec3 orientation,
-    glm::vec3 scale,
-    glm::vec3 colour,
-    float shininess
-) {
-	this->pos = pos;
-	this->orientation = orientation;
-	this->scale = scale;
-	this->colour = colour;
-    this->shininess = shininess;
+Cube::Cube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
+           float shininess) {
+    this->pos         = pos;
+    this->orientation = orientation;
+    this->scale       = scale;
+    this->colour      = colour;
+    this->shininess   = shininess;
 
     update_bounding_box();
-    name = "NO_NAME";
+    name  = "NO_NAME";
     light = nullptr;
 }
 
@@ -54,16 +49,10 @@ void Cube::draw(Shader& shader) {
 
 void Cube::update_bounding_box() {
     // Update the bounding box
-    std::vector<glm::vec3> vert = {
-        glm::vec3(-0.5f, -0.5f, -0.5f),
-        glm::vec3(0.5f, -0.5f, -0.5f),
-        glm::vec3(-0.5f, -0.5f,  0.5f),
-        glm::vec3(0.5f, -0.5f,  0.5f),
-        glm::vec3(-0.5f,  0.5f, -0.5f),
-        glm::vec3(0.5f,  0.5f, -0.5f),
-        glm::vec3(-0.5f,  0.5f,  0.5f),
-        glm::vec3(0.5f,  0.5f,  0.5f)
-    };
+    std::vector<glm::vec3> vert = {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.5f, -0.5f, -0.5f),
+                                   glm::vec3(-0.5f, -0.5f, 0.5f),  glm::vec3(0.5f, -0.5f, 0.5f),
+                                   glm::vec3(-0.5f, 0.5f, -0.5f),  glm::vec3(0.5f, 0.5f, -0.5f),
+                                   glm::vec3(-0.5f, 0.5f, 0.5f),   glm::vec3(0.5f, 0.5f, 0.5f)};
 
     for (unsigned int i = 0; i < vert.size(); ++i) {
         glm::mat4 model(1.0f);
@@ -82,26 +71,30 @@ void Cube::update_bounding_box() {
     bbox = AABB(vert[0].x, vert[0].x, vert[0].y, vert[0].y, vert[0].z, vert[0].z);
 
     for (unsigned int i = 1; i < vert.size(); ++i) {
-        if (vert[i].x < bbox.xmin) { bbox.xmin = vert[i].x; }
-        if (vert[i].x > bbox.xmax) { bbox.xmax = vert[i].x; }
-        if (vert[i].y < bbox.ymin) { bbox.ymin = vert[i].y; }
-        if (vert[i].y > bbox.ymax) { bbox.ymax = vert[i].y; }
-        if (vert[i].z < bbox.zmin) { bbox.zmin = vert[i].z; }
-        if (vert[i].z > bbox.zmax) { bbox.zmax = vert[i].z; }
+        if (vert[i].x < bbox.xmin) {
+            bbox.xmin = vert[i].x;
+        }
+        if (vert[i].x > bbox.xmax) {
+            bbox.xmax = vert[i].x;
+        }
+        if (vert[i].y < bbox.ymin) {
+            bbox.ymin = vert[i].y;
+        }
+        if (vert[i].y > bbox.ymax) {
+            bbox.ymax = vert[i].y;
+        }
+        if (vert[i].z < bbox.zmin) {
+            bbox.zmin = vert[i].z;
+        }
+        if (vert[i].z > bbox.zmax) {
+            bbox.zmax = vert[i].z;
+        }
     }
 }
 
-void Cube::add_light(
-    float ambient,
-    float diffuse,
-    float specular,
-    float constant,
-    float linear,
-    float quadratic
-) {
-    this->light = std::make_unique<Light>(
-        ambient, diffuse, specular, constant, linear, quadratic
-    );
+void Cube::add_light(float ambient, float diffuse, float specular, float constant, float linear,
+                     float quadratic) {
+    this->light = std::make_unique<Light>(ambient, diffuse, specular, constant, linear, quadratic);
 }
 
 std::string Cube::dataToString() {
@@ -141,8 +134,7 @@ std::string Cube::dataToString() {
         str += " NOT_LIGHT ";
         str += "\n";
         return str;
-    }
-    else {
+    } else {
         str += " LIGHT ";
     }
 
@@ -162,48 +154,35 @@ std::string Cube::dataToString() {
 void Cube::init() {
     float vertices[] = {
         // positions          // normals           // texture coords
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 0.0f,
+        0.0f,  -1.0f, 1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  1.0f,
+        0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  1.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,
+        0.0f,  -1.0f, 0.0f,  1.0f,  -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,
+        0.0f,  1.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,
+        0.0f,  1.0f,  0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, -1.0f,
+        0.0f,  0.0f,  1.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  -1.0f,
+        0.0f,  0.0f,  0.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 1.0f,
+        0.0f,  0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+        0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,
+        0.0f,  0.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 0.0f,
+        -1.0f, 0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f,  0.0f,
+        0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,
+        -1.0f, 0.0f,  0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,
 
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
+        -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
+        1.0f,  0.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,
+        1.0f,  0.0f,  0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
     glGenBuffers(1, &Cube::VBO);
     glGenVertexArrays(1, &Cube::VAO);
@@ -220,7 +199,7 @@ void Cube::init() {
     // Vertex normals
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    
+
     // Vertex texture coords
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
     glEnableVertexAttribArray(2);
@@ -232,13 +211,9 @@ std::shared_ptr<Cube> createCubeFromData(std::string& data) {
     std::stringstream ss(data);
     std::string str;
 
-    std::shared_ptr<Cube> temp = std::make_shared<Cube>(
-        glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(1.0, 1.0, 1.0),
-        glm::vec3(1.0, 0.0, 0.0),
-        32.0f
-    );
+    std::shared_ptr<Cube> temp =
+        std::make_shared<Cube>(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0),
+                               glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 32.0f);
 
     str = "";
     ss >> str; // Get rid of the number
@@ -284,11 +259,13 @@ std::shared_ptr<Cube> createCubeFromData(std::string& data) {
     ss >> str;
     temp->name = str;
 
+    // Update bounding box
+    temp->update_bounding_box();
+
     ss >> str;
     if (str == "NOT_LIGHT") {
         temp->light = nullptr;
-    }
-    else {
+    } else {
         Light temp_light;
 
         // Light ambient
@@ -311,14 +288,9 @@ std::shared_ptr<Cube> createCubeFromData(std::string& data) {
         ss >> str;
         temp_light.quadratic = std::stof(str);
 
-        temp->light = std::make_unique<Light>(
-            temp_light.ambient,
-            temp_light.diffuse,
-            temp_light.specular,
-            temp_light.constant,
-            temp_light.linear,
-            temp_light.quadratic
-        );
+        temp->light =
+            std::make_unique<Light>(temp_light.ambient, temp_light.diffuse, temp_light.specular,
+                                    temp_light.constant, temp_light.linear, temp_light.quadratic);
     }
     return temp;
 }

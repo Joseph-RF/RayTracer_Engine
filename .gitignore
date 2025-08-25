@@ -7,3 +7,4 @@ CMakeSettings.json
 Makefile
 
 logs.txt
+.clang-format
