@@ -18,8 +18,9 @@ Arrow::Arrow() {
     this->shininess   = 0.0f;
 
     update_bounding_box();
-    this->name  = "NO_NAME";
-    this->light = nullptr;
+    this->name    = "NO_NAME";
+    this->light   = nullptr;
+    this->visible = true;
 }
 
 Arrow::Arrow(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
@@ -31,11 +32,16 @@ Arrow::Arrow(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 co
     this->shininess   = shininess;
 
     update_bounding_box();
-    name  = "NO_NAME";
-    light = nullptr;
+    name          = "NO_NAME";
+    light         = nullptr;
+    this->visible = true;
 }
 
 void Arrow::draw(Shader& shader) {
+    if (!visible) {
+        return;
+    }
+
     glBindVertexArray(Arrow::VAO);
     shader.use();
 

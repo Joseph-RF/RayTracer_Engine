@@ -11,9 +11,12 @@
 #include <arrow.hpp>
 #include <camera.hpp>
 #include <cube.hpp>
+#include <hollow_cylinder.hpp>
 #include <scenesaver.hpp>
 #include <shader.hpp>
 #include <sphere.hpp>
+
+enum GizmoType { MOVE, ROTATE };
 
 class Engine {
 public:
@@ -26,6 +29,8 @@ public:
 
     void processMouseMovement(float mouse_x, float mouse_y);
     void processMouseClick();
+
+    void setActiveGizmoType(enum GizmoType gizmo_type);
 
     void setWindowSize(float window_x, float window_y);
 
@@ -61,6 +66,7 @@ private:
     // Gizmo functions
     void gizmoAxisMoveFunction(glm::vec3& mouse_ray, std::shared_ptr<GameObject> gizmo);
     void gizmoPlaneFunction(glm::vec3& mouse_ray, std::shared_ptr<GameObject> gizmo);
+    void gizmoRotationFunction(glm::vec3& mouse_ray, std::shared_ptr<GameObject> gizmo);
 
     // Rendering functions
     void renderOutlinedObject();
@@ -94,9 +100,14 @@ private:
     std::shared_ptr<Cube> xz_plane_gizmo;
     std::shared_ptr<Cube> yz_plane_gizmo;
 
+    std::shared_ptr<HollowCylinder> x_rotation_gizmo;
+    std::shared_ptr<HollowCylinder> y_rotation_gizmo;
+    std::shared_ptr<HollowCylinder> z_rotation_gizmo;
+
     // Gizmo function utility
     bool using_gizmo;
     glm::vec3 previous_position;
+    enum GizmoType active_gizmo_type;
 
     // Data for placeholder object
     glm::vec3 placeholder_pos;

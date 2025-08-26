@@ -27,8 +27,8 @@ void processInput(GLFWwindow* window);
 // and positions change frequently.
 
 // Window size
-const float window_x = 1600.f;
-const float window_y = 900.f;
+const float window_x = 1900.f;
+const float window_y = 1080.f;
 
 // Camera
 Camera camera;
@@ -270,6 +270,12 @@ void processInput(GLFWwindow* window) {
     }
     if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS) {
         SceneSaver::loadScene(engine);
+    }
+    if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+        engine.setActiveGizmoType(MOVE);
+    }
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        engine.setActiveGizmoType(ROTATE);
     }
     if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
         m_key_pressed = true;

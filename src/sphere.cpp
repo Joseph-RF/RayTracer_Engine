@@ -15,8 +15,9 @@ Sphere::Sphere() {
     this->shininess   = 32.0f;
 
     update_bounding_box();
-    this->name  = "NO_NAME";
-    this->light = nullptr;
+    this->name    = "NO_NAME";
+    this->light   = nullptr;
+    this->visible = true;
 }
 
 Sphere::Sphere(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
@@ -28,11 +29,16 @@ Sphere::Sphere(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 
     this->shininess   = shininess;
 
     update_bounding_box();
-    this->name  = "NO_NAME";
-    this->light = nullptr;
+    this->name    = "NO_NAME";
+    this->light   = nullptr;
+    this->visible = true;
 }
 
 void Sphere::draw(Shader& shader) {
+    if (!visible) {
+        return;
+    }
+
     glBindVertexArray(Sphere::VAO);
     shader.use();
 

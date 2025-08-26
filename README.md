@@ -85,7 +85,9 @@ cmake --build .
 This section is to list bugs or limitations of the project
 
 * Specular component of lighting appears on the side facing away from the light. Should not appear.
-* If window size is set to (1900, 1080), mouse picking fails and is offset in the y direction. Possibly to due window's title bar.
+* If window size is set to (1900, 1080), mouse picking fails if window is not made fullscreen (maximise).
+* Using rotation gizmos occassionally results in nan values.
+* All GameObjects other than Cubes lack vertex normals meaning shader only works properly with Cube GameObjects
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -111,6 +113,7 @@ Project Link: [https://github.com/Joseph-RF/RayTracer_Engine](https://github.com
 Find below a list of resources that were vital/helpful for the development of this project.
 
 * [Learn OpenGL](https://learnopengl.com/)
+* [songho.ca](https://www.songho.ca/opengl/gl_cylinder.html#:~:text=In%20order%20to%20draw%20the,side%20is%202%20%C3%97%20sectorCount.)
 * [Underdisc](https://underdisc.net/index.html)
 * [Interactive Technique in Three-dimensional-Scences](https://www.codeproject.com/Articles/35139/Interactive-Techniques-in-Three-dimensional-Scenes)
 * [Ray Tracing in One Weekend Series](https://raytracing.github.io/)

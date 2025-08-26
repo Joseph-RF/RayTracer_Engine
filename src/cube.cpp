@@ -12,8 +12,9 @@ Cube::Cube() {
     this->shininess   = 32.0f;
 
     update_bounding_box();
-    name  = "NO_NAME";
-    light = nullptr;
+    this->name    = "NO_NAME";
+    this->light   = nullptr;
+    this->visible = true;
 }
 
 Cube::Cube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
@@ -25,11 +26,16 @@ Cube::Cube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colo
     this->shininess   = shininess;
 
     update_bounding_box();
-    name  = "NO_NAME";
-    light = nullptr;
+    this->name    = "NO_NAME";
+    this->light   = nullptr;
+    this->visible = true;
 }
 
 void Cube::draw(Shader& shader) {
+    if (!visible) {
+        return;
+    }
+
     glBindVertexArray(Cube::VAO);
     shader.use();
 

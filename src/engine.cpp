@@ -21,8 +21,13 @@ Engine::Engine(float window_x, float window_y)
     xz_plane_gizmo = std::make_shared<Cube>();
     yz_plane_gizmo = std::make_shared<Cube>();
 
+    x_rotation_gizmo = std::make_shared<HollowCylinder>();
+    y_rotation_gizmo = std::make_shared<HollowCylinder>();
+    z_rotation_gizmo = std::make_shared<HollowCylinder>();
+
     using_gizmo       = false;
     previous_position = glm::vec3(0.0, 0.0, 0.0);
+    active_gizmo_type = MOVE;
     mouse_pressed     = false;
 
     placeholder_pos         = glm::vec3(0.0, 0.0, 0.0);
@@ -49,6 +54,8 @@ void Engine::init() {
     Arrow::init();
     // Initialise sphere
     Sphere::init();
+    // Initialise hollow cylinder
+    HollowCylinder::init();
 
     centre_gizmo->colour = glm::vec3(0.8, 0.8, 0.8);
     centre_gizmo->scale  = glm::vec3(0.05, 0.05, 0.05);
@@ -88,6 +95,23 @@ void Engine::init() {
     xz_plane_gizmo->name = "XZ_PLANE_MOVE";
     yz_plane_gizmo->name = "YZ_PLANE_MOVE";
 
+    // Set the rotation gizmo properties
+    x_rotation_gizmo->colour = glm::vec3(0.8, 0.0, 0.0);
+    y_rotation_gizmo->colour = glm::vec3(0.0, 0.8, 0.0);
+    z_rotation_gizmo->colour = glm::vec3(0.0, 0.0, 0.8);
+
+    x_rotation_gizmo->orientation = glm::vec3(0.0, glm::radians(90.0f), 0.0);
+    y_rotation_gizmo->orientation = glm::vec3(glm::radians(90.0f), 0.0, 0.0);
+    z_rotation_gizmo->orientation = glm::vec3(0.0, 0.0, 0.0);
+
+    x_rotation_gizmo->scale = glm::vec3(0.8, 0.8, 0.05);
+    y_rotation_gizmo->scale = glm::vec3(0.9, 0.9, 0.05);
+    z_rotation_gizmo->scale = glm::vec3(1.0, 1.0, 0.05);
+
+    x_rotation_gizmo->name = "X_AXIS_ROTATION";
+    y_rotation_gizmo->name = "Y_AXIS_ROTATION";
+    z_rotation_gizmo->name = "Z_AXIS_ROTATION";
+
     addCube(glm::vec3(8.0, -2.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0),
             glm::vec3(0.0, 0.8, 0.0), 32.0);
     addCube(glm::vec3(-2.0, -2.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0),
@@ -115,6 +139,10 @@ void Engine::update() {
         yz_plane_gizmo->pos = selected_object->pos + glm::vec3(0.0, 0.25f * Arrow::tail_height,
                                                                0.25f * Arrow::tail_height);
 
+        x_rotation_gizmo->pos = selected_object->pos;
+        y_rotation_gizmo->pos = selected_object->pos;
+        z_rotation_gizmo->pos = selected_object->pos;
+
         x_arrow->update_bounding_box();
         y_arrow->update_bounding_box();
         z_arrow->update_bounding_box();
@@ -122,6 +150,10 @@ void Engine::update() {
         xy_plane_gizmo->update_bounding_box();
         xz_plane_gizmo->update_bounding_box();
         yz_plane_gizmo->update_bounding_box();
+
+        x_rotation_gizmo->update_bounding_box();
+        y_rotation_gizmo->update_bounding_box();
+        z_rotation_gizmo->update_bounding_box();
     }
     if (!mouse_pressed) {
         // If the mouse has been released, reset using_gizmo
@@ -431,8 +463,10 @@ void Engine::processMouseMovement(float mouse_x, float mouse_y) {
 
         if (name == "X_AXIS_MOVE" || name == "Y_AXIS_MOVE" || name == "Z_AXIS_MOVE") {
             gizmoAxisMoveFunction(mouse_ray, active_gizmo);
-        } else {
+        } else if (name == "XY_PLANE_MOVE" || name == "XZ_PLANE_MOVE" || name == "YZ_PLANE_MOVE") {
             gizmoPlaneFunction(mouse_ray, active_gizmo);
+        } else {
+            gizmoRotationFunction(mouse_ray, active_gizmo);
         }
     }
 }
@@ -442,6 +476,10 @@ void Engine::processMouseClick() {
         selected_object  = mouseover_object;
         mouseover_object = NULL;
     }
+}
+
+void Engine::setActiveGizmoType(enum GizmoType gizmo_type) {
+    active_gizmo_type = gizmo_type;
 }
 
 void Engine::setWindowSize(float window_x, float window_y) {
@@ -541,29 +579,45 @@ void Engine::mouseGizmosIntersect(float mouse_x, float mouse_y) {
 
     bool mouse_over_gizmo = false;
 
-    if (mouseIntersectsBoundingBox(mouse_direction, x_arrow->bbox)) {
-        active_gizmo     = x_arrow;
-        mouse_over_gizmo = true;
-    }
-    if (mouseIntersectsBoundingBox(mouse_direction, y_arrow->bbox)) {
-        active_gizmo     = y_arrow;
-        mouse_over_gizmo = true;
-    }
-    if (mouseIntersectsBoundingBox(mouse_direction, z_arrow->bbox)) {
-        active_gizmo     = z_arrow;
-        mouse_over_gizmo = true;
-    }
-    if (mouseIntersectsBoundingBox(mouse_direction, xy_plane_gizmo->bbox)) {
-        active_gizmo     = xy_plane_gizmo;
-        mouse_over_gizmo = true;
-    }
-    if (mouseIntersectsBoundingBox(mouse_direction, xz_plane_gizmo->bbox)) {
-        active_gizmo     = xz_plane_gizmo;
-        mouse_over_gizmo = true;
-    }
-    if (mouseIntersectsBoundingBox(mouse_direction, yz_plane_gizmo->bbox)) {
-        active_gizmo     = yz_plane_gizmo;
-        mouse_over_gizmo = true;
+    // Only check for the active gizmo type
+    if (active_gizmo_type == MOVE) {
+        if (mouseIntersectsBoundingBox(mouse_direction, x_arrow->bbox)) {
+            active_gizmo     = x_arrow;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, y_arrow->bbox)) {
+            active_gizmo     = y_arrow;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, z_arrow->bbox)) {
+            active_gizmo     = z_arrow;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, xy_plane_gizmo->bbox)) {
+            active_gizmo     = xy_plane_gizmo;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, xz_plane_gizmo->bbox)) {
+            active_gizmo     = xz_plane_gizmo;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, yz_plane_gizmo->bbox)) {
+            active_gizmo     = yz_plane_gizmo;
+            mouse_over_gizmo = true;
+        }
+    } else if (active_gizmo_type == ROTATE) {
+        if (mouseIntersectsBoundingBox(mouse_direction, x_rotation_gizmo->bbox)) {
+            active_gizmo     = x_rotation_gizmo;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, y_rotation_gizmo->bbox)) {
+            active_gizmo     = y_rotation_gizmo;
+            mouse_over_gizmo = true;
+        }
+        if (mouseIntersectsBoundingBox(mouse_direction, z_rotation_gizmo->bbox)) {
+            active_gizmo     = z_rotation_gizmo;
+            mouse_over_gizmo = true;
+        }
     }
 
     if (!mouse_over_gizmo) {
@@ -716,6 +770,57 @@ void Engine::gizmoPlaneFunction(glm::vec3& mouse_ray, std::shared_ptr<GameObject
     }
 }
 
+void Engine::gizmoRotationFunction(glm::vec3& mouse_ray, std::shared_ptr<GameObject> gizmo) {
+    float t = 0.0; // Ray from camera to mouse parameter
+
+    glm::vec3 axis1(0.0, 0.0, 0.0);
+    glm::vec3 axis2(0.0, 0.0, 0.0);
+
+    glm::vec3 rotation_axis(0.0, 0.0, 0.0);
+
+    if (gizmo->name == "X_AXIS_ROTATION") {
+        axis1         = glm::vec3(0.0, 1.0, 0.0);
+        axis2         = glm::vec3(0.0, 0.0, 1.0);
+        rotation_axis = glm::vec3(1.0, 0.0, 0.0);
+    } else if (gizmo->name == "Y_AXIS_ROTATION") {
+        axis1         = glm::vec3(1.0, 0.0, 0.0);
+        axis2         = glm::vec3(0.0, 0.0, 1.0);
+        rotation_axis = glm::vec3(0.0, 1.0, 0.0);
+    } else if (gizmo->name == "Z_AXIS_ROTATION") {
+        axis1         = glm::vec3(1.0, 0.0, 0.0);
+        axis2         = glm::vec3(0.0, 1.0, 0.0);
+        rotation_axis = glm::vec3(0.0, 0.0, 1.0);
+    }
+
+    glm::vec3 plane_normal = glm::normalize(glm::cross(axis1, axis2));
+
+    if (!rayPlaneIntersection(active_camera->pos, mouse_ray, plane_normal, gizmo->pos, t)) {
+        return;
+    }
+
+    glm::vec3 plane_intersection = active_camera->pos + mouse_ray * t;
+
+    if (!using_gizmo) {
+        previous_position = plane_intersection;
+        using_gizmo       = true;
+        return;
+    }
+
+    glm::vec3 a   = previous_position - selected_object->pos;
+    glm::vec3 b   = plane_intersection - selected_object->pos;
+    float det_abu = glm::dot(glm::cross(a, b), rotation_axis);
+
+    float angle = std::acos(glm::dot(a, b) / (glm::length(a) * glm::length(b)));
+
+    if (det_abu < 0) {
+        angle *= -1;
+    }
+
+    selected_object->orientation += angle * rotation_axis;
+
+    previous_position = plane_intersection;
+}
+
 void Engine::renderOutlinedObject() {
 
     glStencilMask(0xFF);
@@ -799,20 +904,30 @@ void Engine::renderMoveGizmos(std::shared_ptr<GameObject> game_object, glm::mat4
                               glm::mat4& projection) {
     glDisable(GL_DEPTH_TEST);
 
+    // Make active gizmo invisble until it is drawn larger
+    if (active_gizmo) {
+        active_gizmo->visible = false;
+    }
+
     light_shader.use();
     light_shader.setMat("projection", projection);
     light_shader.setMat("view", view);
 
-    x_arrow->draw(light_shader);
-    y_arrow->draw(light_shader);
-    z_arrow->draw(light_shader);
+    if (active_gizmo_type == MOVE) {
+        x_arrow->draw(light_shader);
+        y_arrow->draw(light_shader);
+        z_arrow->draw(light_shader);
 
-    xy_plane_gizmo->draw(light_shader);
-    xz_plane_gizmo->draw(light_shader);
-    yz_plane_gizmo->draw(light_shader);
+        xy_plane_gizmo->draw(light_shader);
+        xz_plane_gizmo->draw(light_shader);
+        yz_plane_gizmo->draw(light_shader);
+    }
 
     // Render the active gizmo but larger
-    if (active_gizmo) {
+    if (active_gizmo && active_gizmo_type == MOVE) {
+        // Make active gizmo visible again
+        active_gizmo->visible = true;
+
         active_gizmo->scale *= 1.2f;
         active_gizmo->colour *= 1.2f;
 
@@ -826,4 +941,25 @@ void Engine::renderMoveGizmos(std::shared_ptr<GameObject> game_object, glm::mat4
     centre_gizmo->draw(light_shader);
 
     glEnable(GL_DEPTH_TEST);
+
+    // Rendering the rotation gizmos here with GL_DEPTH_TEST enabled because it looks
+    // better
+    if (active_gizmo_type == ROTATE) {
+        x_rotation_gizmo->draw(light_shader);
+        y_rotation_gizmo->draw(light_shader);
+        z_rotation_gizmo->draw(light_shader);
+    }
+
+    if (active_gizmo && active_gizmo_type == ROTATE) {
+        // Make active gizmo visible again
+        active_gizmo->visible = true;
+
+        active_gizmo->scale *= 1.05f;
+        active_gizmo->colour *= 1.2f;
+
+        active_gizmo->draw(light_shader);
+
+        active_gizmo->scale /= 1.05f;
+        active_gizmo->colour /= 1.2f;
+    }
 }

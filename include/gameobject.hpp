@@ -20,6 +20,8 @@ public:
 
     std::unique_ptr<Light> light;
 
+    bool visible;
+
     virtual void draw(Shader& shader)                     = 0;
     virtual void update_bounding_box()                    = 0;
     virtual void add_light(float ambient, float diffuse, float specular, float constant,
