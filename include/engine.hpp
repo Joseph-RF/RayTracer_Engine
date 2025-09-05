@@ -15,6 +15,8 @@
 #include <scenesaver.hpp>
 #include <shader.hpp>
 #include <sphere.hpp>
+#include <texture_utility.hpp>
+#include <skybox.hpp>
 
 enum GizmoType { MOVE, ROTATE };
 
@@ -84,6 +86,7 @@ private:
     Shader gameobject_shader;
     Shader outline_shader;
     Shader light_shader;
+    Shader skybox_shader;
 
     std::shared_ptr<GameObject> mouseover_object;
     std::shared_ptr<GameObject> selected_object;
@@ -122,4 +125,10 @@ private:
     Cube bbox_wireframe;
 
     int max_lights;
+
+    // Texture image file names for skybox faces
+    std::string active_skybox_texture_name;
+    unsigned int brightsky_texture;
+    unsigned int starrysky_texture;
+    std::map<std::string, unsigned int> skybox_texture_map;
 };

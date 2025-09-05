@@ -155,9 +155,6 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::SetNextWindowSize(ImVec2(window_x * 0.2f, window_y));
-
         // Engine rendering
         engine.render();
 

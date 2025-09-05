@@ -47,6 +47,8 @@ void Engine::init() {
     outline_shader =
         Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl");
     light_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl");
+    skybox_shader =
+        Shader(RESOURCES_PATH "skybox_vshader.glsl", RESOURCES_PATH "skybox_fshader.glsl");
 
     // Initialise Cube static variables that need OpenGL to exist
     Cube::init();
@@ -57,6 +59,31 @@ void Engine::init() {
     // Initialise hollow cylinder
     HollowCylinder::init();
 
+    // Initialise skybox and textures
+    Skybox::init();
+    std::vector<std::string> skybox_faces = {RESOURCES_PATH "textures/brightsky/right.jpg",
+                                             RESOURCES_PATH "textures/brightsky/left.jpg",
+                                             RESOURCES_PATH "textures/brightsky/top.jpg",
+                                             RESOURCES_PATH "textures/brightsky/bottom.jpg",
+                                             RESOURCES_PATH "textures/brightsky/front.jpg",
+                                             RESOURCES_PATH "textures/brightsky/back.jpg"};
+
+    brightsky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
+
+    skybox_faces = {RESOURCES_PATH "textures/starrysky/right.jpg",
+                    RESOURCES_PATH "textures/starrysky/left.jpg",
+                    RESOURCES_PATH "textures/starrysky/top.jpg",
+                    RESOURCES_PATH "textures/starrysky/bottom.jpg",
+                    RESOURCES_PATH "textures/starrysky/front.jpg",
+                    RESOURCES_PATH "textures/starrysky/back.jpg"};
+
+    starrysky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
+
+    skybox_texture_map["brightsky"] = brightsky_texture;
+    skybox_texture_map["starrysky"] = starrysky_texture;
+    active_skybox_texture_name      = "brightsky";
+
+    // Set gizmo properties
     centre_gizmo->colour = glm::vec3(0.8, 0.8, 0.8);
     centre_gizmo->scale  = glm::vec3(0.05, 0.05, 0.05);
     centre_gizmo->name   = "CENTRE_GIZMO";
@@ -143,6 +170,15 @@ void Engine::update() {
         y_rotation_gizmo->pos = selected_object->pos;
         z_rotation_gizmo->pos = selected_object->pos;
 
+        x_rotation_gizmo->orientation =
+            glm::vec3(0.0, selected_object->orientation.y + glm::radians(90.0f),
+                      selected_object->orientation.z);
+        y_rotation_gizmo->orientation =
+            glm::vec3(selected_object->orientation.x + glm::radians(90.0f), 0.0,
+                      selected_object->orientation.z);
+        z_rotation_gizmo->orientation =
+            glm::vec3(selected_object->orientation.x, selected_object->orientation.y, 0.0);
+
         x_arrow->update_bounding_box();
         y_arrow->update_bounding_box();
         z_arrow->update_bounding_box();
@@ -177,6 +213,14 @@ void Engine::render() {
     light_shader.use();
     light_shader.setMat("view", view);
     light_shader.setMat("projection", projection);
+
+    skybox_shader.use();
+    // Keeping the upper 3x3 of the view matrix removes the element of translation from it.
+    // Skybox will stay centred around the camera
+    skybox_shader.setMat("view", glm::mat4(glm::mat3(view)));
+    skybox_shader.setMat("projection", projection);
+
+    Skybox::draw(skybox_shader, skybox_texture_map[active_skybox_texture_name]);
 
     // Draw objects that don't need to be outlined first first
 
@@ -213,6 +257,8 @@ void Engine::render() {
 }
 
 void Engine::render_imgui() {
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(window_x * 0.15f, window_y));
     ImGui::Begin("ImGUI Window", NULL);
 
     ImGui::BeginTabBar("Settings#left_tabs_bar");
@@ -441,6 +487,29 @@ void Engine::render_imgui() {
     }
 
     ImGui::EndTabBar();
+    ImGui::End();
+
+    ImGui::SetNextWindowPos(ImVec2(window_x - (window_x * 0.15f), 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(window_x * 0.15f, window_y * 0.3f));
+    ImGui::Begin("Skybox Menu");
+
+    ImGui::SetNextItemWidth(120.f);
+    if (ImGui::BeginCombo("Select skybox", active_skybox_texture_name.c_str())) {
+        std::map<std::string, unsigned int>::iterator it;
+        for (it = skybox_texture_map.begin(); it != skybox_texture_map.end(); ++it) {
+            bool is_selected = (active_skybox_texture_name == it->first);
+            if (ImGui::Selectable(it->first.c_str(), is_selected)) {
+                active_skybox_texture_name = it->first;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+    ImGui::Separator();
+    ImGui::SetNextItemWidth(120.f);
+    ImGui::SliderFloat("Skybox brightness", &Skybox::brightness, 0.0, 1.0);
+
     ImGui::End();
 }
 
