@@ -41,11 +41,18 @@ void loadScene(Engine& engine) {
 
             if (temp == "Cube") {
                 new_object_list.push_back(createCubeFromData(str));
-                if (new_object_list[index]->light) {
-                    num_lights++;
-                }
+            } else if (temp == "Arrow") {
+                new_object_list.push_back(createArrowFromData(str));
+            } else if (temp == "HollowCylinder") {
+                new_object_list.push_back(createHollowCylinderFromData(str));
+            } else if (temp == "Sphere") {
+                new_object_list.push_back(createSphereFromData(str));
             } else {
                 std::cout << "Unexpected object type found in save data" << std::endl;
+            }
+            // Check if a light was added
+            if (new_object_list[index]->light) {
+                num_lights++;
             }
         }
         infile.close();

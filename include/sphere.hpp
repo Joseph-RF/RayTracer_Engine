@@ -25,6 +25,9 @@ public:
     static void init();
 
 private:
+    static std::vector<float> generateVertexPositions();
+    static std::vector<float> generateVertexNormals(const std::vector<float>& vertex_positions);
+
     static unsigned int VBO;
     static unsigned int EBO;
     static unsigned int VAO;
@@ -32,3 +35,5 @@ private:
     static unsigned int stacks;
     static unsigned int slices;
 };
+
+std::shared_ptr<Sphere> createSphereFromData(std::string& data);

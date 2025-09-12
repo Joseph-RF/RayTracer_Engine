@@ -1,3 +1,4 @@
+#include "arrow.hpp"
 #include <arrow.hpp>
 
 unsigned int Arrow::VBO;
@@ -56,7 +57,8 @@ void Arrow::draw(Shader& shader) {
     shader.setVec3("colour", colour);
     shader.setFloat("shininess", shininess);
 
-    glDrawElements(GL_TRIANGLES, 12 * Arrow::num_sectors, GL_UNSIGNED_INT, 0);
+    // 3 vertices per triangle, 2 triangles per sector, 2 cylinders per arrow
+    glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * 2 * Arrow::num_sectors);
     glBindVertexArray(0);
 }
 
@@ -120,7 +122,7 @@ std::string Arrow::dataToString() {
     std::string str = "";
 
     // Game object type
-    str += "Cube ";
+    str += "Arrow ";
 
     // Game object position
     str += (std::to_string(pos.x) + " ");
@@ -186,39 +188,131 @@ std::vector<float> Arrow::unitCircleVertices() {
     return vertices;
 }
 
-void Arrow::init() {
+std::vector<float> Arrow::generateVertexPositions() {
     // Get the vertices of the cylinder from the circles on either end of the
     // cylinder
 
-    std::vector<float> vertices;
+    std::vector<float> vertex_positions;
     std::vector<float> unit_circles_vertices = unitCircleVertices();
+    unsigned int n                           = unit_circles_vertices.size();
 
-    // Add vertices for tail cylinder base first (when i = 0) then top circle
-    // (when i = 1)
-    for (unsigned int i = 0; i < 2; ++i) {
-        float z = (-0.5f * Arrow::tail_height) + i * Arrow::tail_height;
+    float z = 0.0;
 
-        for (unsigned int j = 0; j < unit_circles_vertices.size(); j += 3) {
-            vertices.push_back(unit_circles_vertices[j] * Arrow::tail_radius);     // x
-            vertices.push_back(unit_circles_vertices[j + 1] * Arrow::tail_radius); // y
-            vertices.push_back(z);                                                 // z
-        }
+    // Add the vertex positions for triangles with their base along the bottom
+    // of the cylinder
+    z = -0.5f * Arrow::tail_height;
+
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z);                                                 // z
+
+        // Vertex 2, same height as vertex 1 just one sector along
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::tail_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z);                                                       // z
+
+        // Vertex 3, same sector as vertex 2 but at the above circle
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::tail_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z + Arrow::tail_height);                                  // z
     }
 
-    // Add the vertices for the arrow head
-    for (unsigned int i = 0; i < 2; ++i) {
-        float radius = (1 - i) * Arrow::head_radius;
-        float z      = (0.5f * Arrow::tail_height) + i * Arrow::head_height;
+    // Add vertex positions for the triangles with their base along the top of the
+    // cylinder
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z + Arrow::tail_height);                            // z
 
-        for (unsigned int j = 0; j < unit_circles_vertices.size(); j += 3) {
-            vertices.push_back(unit_circles_vertices[j] * radius);     // x
-            vertices.push_back(unit_circles_vertices[j + 1] * radius); // y
-            vertices.push_back(z);
-        }
+        // Vertex 2, same sector as vertex 1 but at the lower circle
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z);                                                 // z
+
+        // Vertex 3, same height as vertex 1 just one sector along
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::tail_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z + Arrow::tail_height);                                  // z
     }
 
-    // Vertices added, now need to add the indices for OpenGL to draw them in the
-    // right order
+    // Repeat the two loops above but for the arrow head
+    // Add the vertex positions for triangles with their base along the bottom
+    // of the arrow head
+    z = 0.5f * Arrow::tail_height;
+
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::head_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::head_radius); // y
+        vertex_positions.push_back(z);                                                 // z
+
+        // Vertex 2, same height as vertex 1 just one sector along
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::head_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::head_radius); // y
+        vertex_positions.push_back(z);                                                       // z
+
+        // Vertex 3, same sector as vertex 2 but at tip of the arrow head
+        vertex_positions.push_back(0.0f);                   // x
+        vertex_positions.push_back(0.0f);                   // y
+        vertex_positions.push_back(z + Arrow::head_height); // z
+    }
+
+    // Add vertex positions for the triangles with their base along the top of the
+    // arrow head
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(0.0f);                   // x
+        vertex_positions.push_back(0.0f);                   // y
+        vertex_positions.push_back(z + Arrow::head_height); // z
+
+        // Vertex 2, same sector as vertex 1 but at the lower circle
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::head_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::head_radius); // y
+        vertex_positions.push_back(z);                                                 // z
+
+        // Vertex 3, same height as vertex 1 just one sector along
+        vertex_positions.push_back(0.0f);                   // x
+        vertex_positions.push_back(0.0f);                   // y
+        vertex_positions.push_back(z + Arrow::head_height); // z
+    }
+
+    return vertex_positions;
+}
+
+std::vector<float> Arrow::generateVertexNormals(const std::vector<float>& vertex_positions) {
+    std::vector<float> vertex_normals;
+    for (unsigned int i = 0; i < vertex_positions.size(); i += 9) {
+        glm::vec3 v1(vertex_positions[i], vertex_positions[i + 1], vertex_positions[i + 2]);
+        glm::vec3 v2(vertex_positions[i + 3], vertex_positions[i + 4], vertex_positions[i + 5]);
+        glm::vec3 v3(vertex_positions[i + 6], vertex_positions[i + 7], vertex_positions[i + 8]);
+
+        glm::vec3 u = v2 - v1;
+        glm::vec3 v = v3 - v1;
+
+        glm::vec3 n = glm::cross(u, v);
+
+        // Normal for v1
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+
+        // Normal for v2
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+
+        // Normal for v3
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+    }
+    return vertex_normals;
+}
+
+std::vector<unsigned int> Arrow::generateIndices() {
     std::vector<unsigned int> indices;
     unsigned int k1 = 0;
     unsigned int k2 = Arrow::num_sectors;
@@ -250,22 +344,127 @@ void Arrow::init() {
         indices.push_back(k3);
     }
 
-    glGenBuffers(1, &Arrow::EBO);
+    return indices;
+}
+
+void Arrow::init() {
+    std::vector<float> vertex_positions = generateVertexPositions();
+    std::vector<float> vertex_normals   = generateVertexNormals(vertex_positions);
+
+    // Vertices added, now need to add the indices for OpenGL to draw them in the
+    // right order
+    std::vector<unsigned int> indices = generateIndices();
+
+    // glGenBuffers(1, &Arrow::EBO);
     glGenBuffers(1, &Arrow::VBO);
     glGenVertexArrays(1, &Arrow::VAO);
 
     glBindVertexArray(Arrow::VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, Arrow::VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Arrow::EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * (vertex_positions.size() + vertex_normals.size()),
+                 NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertex_positions.size(),
+                    vertex_positions.data());
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(float) * vertex_positions.size(),
+                    sizeof(float) * vertex_normals.size(), vertex_normals.data());
 
     // Vertex positions
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // Vertex normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void*)(sizeof(float) * vertex_positions.size()));
+    glEnableVertexAttribArray(1);
+
     glBindVertexArray(0);
+}
+
+std::shared_ptr<Arrow> createArrowFromData(std::string& data) {
+    std::stringstream ss(data);
+    std::string str;
+
+    std::shared_ptr<Arrow> temp =
+        std::make_shared<Arrow>(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0),
+                                glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 32.0f);
+
+    str = "";
+    ss >> str; // Get rid of the number
+    ss >> str; // Get rid of object class type
+
+    // Cube position
+    ss >> str;
+    temp->pos.x = std::stof(str);
+    ss >> str;
+    temp->pos.y = std::stof(str);
+    ss >> str;
+    temp->pos.z = std::stof(str);
+
+    // Cube orientation
+    ss >> str;
+    temp->orientation.x = std::stof(str);
+    ss >> str;
+    temp->orientation.y = std::stof(str);
+    ss >> str;
+    temp->orientation.z = std::stof(str);
+
+    // Cube scale
+    ss >> str;
+    temp->scale.x = std::stof(str);
+    ss >> str;
+    temp->scale.y = std::stof(str);
+    ss >> str;
+    temp->scale.z = std::stof(str);
+
+    // Cube colour
+    ss >> str;
+    temp->colour.x = std::stof(str);
+    ss >> str;
+    temp->colour.y = std::stof(str);
+    ss >> str;
+    temp->colour.z = std::stof(str);
+
+    // Cube shininess
+    ss >> str;
+    temp->shininess = std::stof(str);
+
+    // Cube name
+    ss >> str;
+    temp->name = str;
+
+    // Update bounding box
+    temp->update_bounding_box();
+
+    ss >> str;
+    if (str == "NOT_LIGHT") {
+        temp->light = nullptr;
+    } else {
+        Light temp_light;
+
+        // Light ambient
+        ss >> str;
+        temp_light.ambient = std::stof(str);
+        // Light diffuse
+        ss >> str;
+        temp_light.diffuse = std::stof(str);
+        // Light specular
+        ss >> str;
+        temp_light.specular = std::stof(str);
+
+        // Light constant
+        ss >> str;
+        temp_light.constant = std::stof(str);
+        // Light linear
+        ss >> str;
+        temp_light.linear = std::stof(str);
+        // Light quadratic
+        ss >> str;
+        temp_light.quadratic = std::stof(str);
+
+        temp->light =
+            std::make_unique<Light>(temp_light.ambient, temp_light.diffuse, temp_light.specular,
+                                    temp_light.constant, temp_light.linear, temp_light.quadratic);
+    }
+    return temp;
 }

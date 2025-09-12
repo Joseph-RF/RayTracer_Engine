@@ -84,10 +84,9 @@ cmake --build .
 
 This section is to list bugs or limitations of the project
 
-* Specular component of lighting appears on the side facing away from the light. Should not appear.
 * If window size is set to (1900, 1080), mouse picking fails if window is not made fullscreen (maximise).
 * Using rotation gizmos occassionally results in nan values.
-* All GameObjects other than Cubes lack vertex normals meaning shader only works properly with Cube GameObjects
+* No shadows, light passes through objects.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -119,7 +119,14 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     // Power index represents how "focused" the specular component is on the face
     // The higher it is, the more concentrated, the lower it is, the more spread out
     // NOTE: material here is the global variable material found at this fragment
-    float specular_factor = pow(max(dot(view_dir, reflected_direction), 0.0), shininess);
+    float specular_factor = 0.0;
+
+    // Below check prevents a specular components on fragments facing away from 
+    // light source
+    if(dot(light_direction, norm) > 0.0) {
+        specular_factor = pow(max(dot(view_dir, reflected_direction), 0.0), shininess);
+    }
+
     vec3 specular = specular_factor * light.specular * light.colour * colour;
 
     // Account for attenuation

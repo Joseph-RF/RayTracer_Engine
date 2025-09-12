@@ -4,8 +4,8 @@ unsigned int HollowCylinder::VBO;
 unsigned int HollowCylinder::VAO;
 unsigned int HollowCylinder::EBO;
 
-int HollowCylinder::num_sectors = 40;
-float HollowCylinder::thickness = 0.01f;
+int HollowCylinder::num_sectors = 50;
+float HollowCylinder::thickness = 0.1f;
 
 HollowCylinder::HollowCylinder() {
     this->pos         = glm::vec3(0.0, 0.0, 0.0);
@@ -54,7 +54,7 @@ void HollowCylinder::draw(Shader& shader) {
     shader.setFloat("shininess", shininess);
 
     // 3 vertices per triangle, 8 * num_sector triangles
-    glDrawElements(GL_TRIANGLES, 3 * 8 * HollowCylinder::num_sectors, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 3 * 8 * HollowCylinder::num_sectors);
     glBindVertexArray(0);
 }
 
@@ -117,7 +117,7 @@ std::string HollowCylinder::dataToString() {
     std::string str = "";
 
     // Game object type
-    str += "Cube ";
+    str += "HollowCylinder ";
 
     // Game object position
     str += (std::to_string(pos.x) + " ");
@@ -183,100 +183,302 @@ std::vector<float> HollowCylinder::unitCircleVertices() {
     return vertices;
 }
 
+std::vector<float> HollowCylinder::generateVertexPositions() {
+
+    std::vector<float> vertex_positions;
+    std::vector<float> unit_circles_vertices = HollowCylinder::unitCircleVertices();
+    unsigned int n                           = unit_circles_vertices.size();
+
+    float z = -0.5f;
+
+    // Add the vertex positions for triangles on the outside of the cylinder
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+
+        glm::vec3 v1(unit_circles_vertices[i], unit_circles_vertices[i + 1], z);
+        glm::vec3 v2(unit_circles_vertices[(i + 3) % n], unit_circles_vertices[(i + 4) % n], z);
+        glm::vec3 v3(unit_circles_vertices[i], unit_circles_vertices[i + 1], z + 1);
+        glm::vec3 v4(unit_circles_vertices[(i + 3) % n], unit_circles_vertices[(i + 4) % n], z + 1);
+
+        // Triangle with base on the lower circle
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z);
+
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z);
+
+        // Triangle with base on the upper circle
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z);
+
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z);
+    }
+
+    // Add vertex positions for the triangles on the inside of the cylinder
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+
+        glm::vec3 v1(unit_circles_vertices[i] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[i + 1] * (1 - HollowCylinder::thickness), z);
+        glm::vec3 v2(unit_circles_vertices[(i + 3) % n] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[(i + 4) % n] * (1 - HollowCylinder::thickness), z);
+        glm::vec3 v3(unit_circles_vertices[i] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[i + 1] * (1 - HollowCylinder::thickness), z + 1);
+        glm::vec3 v4(unit_circles_vertices[(i + 3) % n] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[(i + 4) % n] * (1 - HollowCylinder::thickness), z + 1);
+
+        // Triangle with base on the lower circle
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z);
+
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z);
+
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z);
+
+        // Triangle with base on the upper circle
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z);
+
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z);
+    }
+
+    // Add triangles for the rings at the top and bottom of the cylinder
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+
+        z = 0.5f;
+
+        glm::vec3 v1(unit_circles_vertices[i], unit_circles_vertices[i + 1], z);
+        glm::vec3 v2(unit_circles_vertices[(i + 3) % n], unit_circles_vertices[(i + 4) % n], z);
+        glm::vec3 v3(unit_circles_vertices[i] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[i + 1] * (1 - HollowCylinder::thickness), z);
+        glm::vec3 v4(unit_circles_vertices[(i + 3) % n] * (1 - HollowCylinder::thickness),
+                     unit_circles_vertices[(i + 4) % n] * (1 - HollowCylinder::thickness), z);
+
+        // Two triangles on the upper ring
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z);
+
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z);
+
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z);
+
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z);
+
+        // Two triangles on the lower ring
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z - 1.0f);
+
+        vertex_positions.push_back(v1.x);
+        vertex_positions.push_back(v1.y);
+        vertex_positions.push_back(v1.z - 1.0f);
+
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z - 1.0f);
+
+        vertex_positions.push_back(v4.x);
+        vertex_positions.push_back(v4.y);
+        vertex_positions.push_back(v4.z - 1.0f);
+
+        vertex_positions.push_back(v2.x);
+        vertex_positions.push_back(v2.y);
+        vertex_positions.push_back(v2.z - 1.0f);
+
+        vertex_positions.push_back(v3.x);
+        vertex_positions.push_back(v3.y);
+        vertex_positions.push_back(v3.z - 1.0f);
+    }
+
+    return vertex_positions;
+}
+
+std::vector<float>
+HollowCylinder::generateVertexNormals(const std::vector<float>& vertex_positions) {
+    std::vector<float> vertex_normals;
+    for (unsigned int i = 0; i < vertex_positions.size(); i += 9) {
+        glm::vec3 v1(vertex_positions[i], vertex_positions[i + 1], vertex_positions[i + 2]);
+        glm::vec3 v2(vertex_positions[i + 3], vertex_positions[i + 4], vertex_positions[i + 5]);
+        glm::vec3 v3(vertex_positions[i + 6], vertex_positions[i + 7], vertex_positions[i + 8]);
+
+        glm::vec3 u = v2 - v1;
+        glm::vec3 v = v3 - v1;
+
+        glm::vec3 n = glm::cross(u, v);
+
+        // Normal for v1
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+
+        // Normal for v2
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+
+        // Normal for v3
+        vertex_normals.push_back(n.x);
+        vertex_normals.push_back(n.y);
+        vertex_normals.push_back(n.z);
+    }
+
+    return vertex_normals;
+}
+
 void HollowCylinder::init() {
     // Get the vertices of the hollow cylinder from the circles on either end of the
     // cylinder
 
-    std::vector<float> vertices;
-    std::vector<float> unit_circles_vertices = HollowCylinder::unitCircleVertices();
+    std::vector<float> vertex_positions = HollowCylinder::generateVertexPositions();
+    std::vector<float> vertex_normals   = generateVertexNormals(vertex_positions);
 
-    // Add vertices for tail cylinder base first (when i = 0) then top circle
-    // (when i = 1)
-    for (unsigned int i = 0; i < 2; ++i) {
-        float z = -0.5f + i * 0.5f;
-
-        for (unsigned int j = 0; j < unit_circles_vertices.size(); j += 3) {
-            // Outer circle first
-            vertices.push_back(unit_circles_vertices[j]);     // x
-            vertices.push_back(unit_circles_vertices[j + 1]); // y
-            vertices.push_back(z);                            // z
-
-            // Inner circle next
-            vertices.push_back(unit_circles_vertices[j] * (1 - HollowCylinder::thickness));     // x
-            vertices.push_back(unit_circles_vertices[j + 1] * (1 - HollowCylinder::thickness)); // y
-            vertices.push_back(z);                                                              // z
-        }
-    }
-
-    // Vertices added, now need to add the indices for OpenGL to draw them in the
-    // right order
-    std::vector<unsigned int> indices;
-    unsigned int sector          = 0;
-    unsigned int vertical_offset = 2 * HollowCylinder::num_sectors; // Upper circle indices
-
-    for (unsigned int i = 0; i < HollowCylinder::num_sectors; ++i, sector += 2) {
-
-        // Exterior
-        // k1 -> k1 + 2 -> k2 + 2
-        indices.push_back(sector);
-        indices.push_back((sector + 2) % vertical_offset);
-        indices.push_back(((sector + vertical_offset + 2) % vertical_offset) + vertical_offset);
-
-        // k2 + 2 -> k2 -> k1
-        indices.push_back(((sector + vertical_offset + 2) % vertical_offset) + vertical_offset);
-        indices.push_back(sector + vertical_offset);
-        indices.push_back(sector);
-
-        // Interior
-        // k1 + 1 -> k1 + 3 -> k2 + 3
-        indices.push_back((sector + 1));
-        indices.push_back((sector + 3) % vertical_offset);
-        indices.push_back(((sector + vertical_offset + 3) % vertical_offset) + vertical_offset);
-
-        // k2 + 3 -> k2 + 1 -> k1 + 1
-        indices.push_back(((sector + vertical_offset + 3) % vertical_offset) + vertical_offset);
-        indices.push_back(((sector + vertical_offset + 1) % vertical_offset) + vertical_offset);
-        indices.push_back((sector + 1));
-
-        // Lower ring
-        // k1 + 1 -> k1 -> k1 + 3
-        indices.push_back((sector + 1));
-        indices.push_back(sector);
-        indices.push_back((sector + 3) % vertical_offset);
-
-        // k1 -> k1 + 2 -> k1 + 3
-        indices.push_back(sector);
-        indices.push_back((sector + 2) % vertical_offset);
-        indices.push_back((sector + 3) % vertical_offset);
-
-        // Upper ring
-        // k2 + 1 -> k2 -> k2 + 3
-        indices.push_back(((sector + vertical_offset + 1) % vertical_offset) + vertical_offset);
-        indices.push_back(sector + vertical_offset);
-        indices.push_back(((sector + vertical_offset + 3) % vertical_offset) + vertical_offset);
-
-        // k2 -> k2 + 2 -> k2 + 3
-        indices.push_back(sector + vertical_offset);
-        indices.push_back(((sector + vertical_offset + 2) % vertical_offset) + vertical_offset);
-        indices.push_back(((sector + vertical_offset + 3) % vertical_offset) + vertical_offset);
-    }
-
-    glGenBuffers(1, &HollowCylinder::EBO);
     glGenBuffers(1, &HollowCylinder::VBO);
     glGenVertexArrays(1, &HollowCylinder::VAO);
 
     glBindVertexArray(HollowCylinder::VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, HollowCylinder::VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HollowCylinder::EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * (vertex_positions.size() + vertex_normals.size()),
+                 NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertex_positions.size(),
+                    vertex_positions.data());
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(float) * vertex_positions.size(),
+                    sizeof(float) * vertex_normals.size(), vertex_normals.data());
 
     // Vertex positions
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // Vertex normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void*)(sizeof(float) * vertex_positions.size()));
+    glEnableVertexAttribArray(1);
+
     glBindVertexArray(0);
+}
+
+std::shared_ptr<HollowCylinder> createHollowCylinderFromData(std::string& data) {
+    std::stringstream ss(data);
+    std::string str;
+
+    std::shared_ptr<HollowCylinder> temp =
+        std::make_shared<HollowCylinder>(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0),
+                                         glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 32.0f);
+
+    str = "";
+    ss >> str; // Get rid of the number
+    ss >> str; // Get rid of object class type
+
+    // Cube position
+    ss >> str;
+    temp->pos.x = std::stof(str);
+    ss >> str;
+    temp->pos.y = std::stof(str);
+    ss >> str;
+    temp->pos.z = std::stof(str);
+
+    // Cube orientation
+    ss >> str;
+    temp->orientation.x = std::stof(str);
+    ss >> str;
+    temp->orientation.y = std::stof(str);
+    ss >> str;
+    temp->orientation.z = std::stof(str);
+
+    // Cube scale
+    ss >> str;
+    temp->scale.x = std::stof(str);
+    ss >> str;
+    temp->scale.y = std::stof(str);
+    ss >> str;
+    temp->scale.z = std::stof(str);
+
+    // Cube colour
+    ss >> str;
+    temp->colour.x = std::stof(str);
+    ss >> str;
+    temp->colour.y = std::stof(str);
+    ss >> str;
+    temp->colour.z = std::stof(str);
+
+    // Cube shininess
+    ss >> str;
+    temp->shininess = std::stof(str);
+
+    // Cube name
+    ss >> str;
+    temp->name = str;
+
+    // Update bounding box
+    temp->update_bounding_box();
+
+    ss >> str;
+    if (str == "NOT_LIGHT") {
+        temp->light = nullptr;
+    } else {
+        Light temp_light;
+
+        // Light ambient
+        ss >> str;
+        temp_light.ambient = std::stof(str);
+        // Light diffuse
+        ss >> str;
+        temp_light.diffuse = std::stof(str);
+        // Light specular
+        ss >> str;
+        temp_light.specular = std::stof(str);
+
+        // Light constant
+        ss >> str;
+        temp_light.constant = std::stof(str);
+        // Light linear
+        ss >> str;
+        temp_light.linear = std::stof(str);
+        // Light quadratic
+        ss >> str;
+        temp_light.quadratic = std::stof(str);
+
+        temp->light =
+            std::make_unique<Light>(temp_light.ambient, temp_light.diffuse, temp_light.specular,
+                                    temp_light.constant, temp_light.linear, temp_light.quadratic);
+    }
+    return temp;
 }

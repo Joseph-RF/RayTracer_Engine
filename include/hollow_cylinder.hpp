@@ -24,6 +24,8 @@ public:
 
 private:
     static std::vector<float> unitCircleVertices();
+    static std::vector<float> generateVertexPositions();
+    static std::vector<float> generateVertexNormals(const std::vector<float>& vertex_positions);
 
     static unsigned int VBO;
     static unsigned int EBO;
@@ -32,3 +34,5 @@ private:
     static int num_sectors;
     static float thickness; // Fraction of the outer radius
 };
+
+std::shared_ptr<HollowCylinder> createHollowCylinderFromData(std::string& data);

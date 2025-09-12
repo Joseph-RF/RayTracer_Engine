@@ -14,9 +14,9 @@
 #include <hollow_cylinder.hpp>
 #include <scenesaver.hpp>
 #include <shader.hpp>
+#include <skybox.hpp>
 #include <sphere.hpp>
 #include <texture_utility.hpp>
-#include <skybox.hpp>
 
 enum GizmoType { MOVE, ROTATE };
 
@@ -48,6 +48,7 @@ public:
 private:
     void addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
                  float shininess);
+    void addPlaceholderObject();
     void addPointLight(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour);
 
     // Updating functions
@@ -118,6 +119,9 @@ private:
     glm::vec3 placeholder_scale;
     glm::vec3 placeholder_colour;
     float placeholder_shininess;
+
+    std::string placeholder_object_type;
+    std::vector<std::string> object_type_list;
 
     Light placeholder_light;
 

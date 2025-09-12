@@ -36,6 +36,9 @@ Engine::Engine(float window_x, float window_y)
     placeholder_colour      = glm::vec3(0.0, 0.0, 0.0);
     placeholder_shininess   = 32.0f;
 
+    placeholder_object_type = "CUBE";
+    object_type_list        = {"CUBE", "SPHERE", "ARROW", "HOLLOW_CYLINDER"};
+
     placeholder_light = Light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
 
     max_lights = 16;
@@ -389,7 +392,18 @@ void Engine::render_imgui() {
         ImGui::Text("Add objects to the scene here");
 
         // Note: Will have to refactor this if objects properties change
+        ImGui::NewLine();
 
+        ImGui::Text("Type of object");
+        if (ImGui::BeginCombo("Select type", placeholder_object_type.c_str())) {
+            for (unsigned int i = 0; i < object_type_list.size(); ++i) {
+                bool is_selected = (placeholder_object_type == object_type_list[i]);
+                if (ImGui::Selectable(object_type_list[i].c_str(), is_selected)) {
+                    placeholder_object_type = object_type_list[i];
+                }
+            }
+            ImGui::EndCombo();
+        }
         ImGui::NewLine();
 
         ImGui::Text("Position");
@@ -434,8 +448,7 @@ void Engine::render_imgui() {
         ImGui::SliderFloat("Shininess", &placeholder_shininess, 0.0f, 100.0f);
 
         if (ImGui::Button("Add Object")) {
-            addCube(placeholder_pos, placeholder_orientation, placeholder_scale, placeholder_colour,
-                    placeholder_shininess);
+            addPlaceholderObject();
             selected_object  = game_objects[game_objects.size() - 1];
             mouseover_object = nullptr;
         }
@@ -571,6 +584,28 @@ void Engine::addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm:
 
     game_objects.push_back(std::make_shared<Cube>(pos, orientation, scale, colour, shininess));
 
+    game_objects[n]->name = "Object_" + std::to_string(n);
+}
+
+void Engine::addPlaceholderObject() {
+    unsigned int n = game_objects.size();
+    if (this->placeholder_object_type == "CUBE") {
+        game_objects.push_back(std::make_shared<Cube>(placeholder_pos, placeholder_orientation,
+                                                      placeholder_scale, placeholder_colour,
+                                                      placeholder_shininess));
+    } else if (this->placeholder_object_type == "SPHERE") {
+        game_objects.push_back(std::make_shared<Sphere>(placeholder_pos, placeholder_orientation,
+                                                        placeholder_scale, placeholder_colour,
+                                                        placeholder_shininess));
+    } else if (this->placeholder_object_type == "ARROW") {
+        game_objects.push_back(std::make_shared<Arrow>(placeholder_pos, placeholder_orientation,
+                                                       placeholder_scale, placeholder_colour,
+                                                       placeholder_shininess));
+    } else if (this->placeholder_object_type == "HOLLOW_CYLINDER") {
+        game_objects.push_back(std::make_shared<HollowCylinder>(
+            placeholder_pos, placeholder_orientation, placeholder_scale, placeholder_colour,
+            placeholder_shininess));
+    }
     game_objects[n]->name = "Object_" + std::to_string(n);
 }
 
