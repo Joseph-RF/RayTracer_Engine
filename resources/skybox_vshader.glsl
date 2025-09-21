@@ -2,8 +2,8 @@
 
 layout (location = 0) in vec3 aPos;
 
-uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 view;
 
 // Texture dir should be equivalent to texture coords as long as cube is placed at the origin
 out vec3 texture_dir;

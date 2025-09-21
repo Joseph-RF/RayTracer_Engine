@@ -4,77 +4,107 @@ Shader::Shader() {
     ID = 0;
 }
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath) {
+Shader::Shader(const char* vertex_path, const char* fragment_path, const char* geometry_path) {
+
+    bool using_geometry_shader = (std::string(geometry_path) != "");
 
     // 1. retrieve the vertex/fragment source code from filePath
-    std::string vertexCode;
-    std::string fragmentCode;
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
+    std::string vertex_code;
+    std::string fragment_code;
+    std::string geometry_code;
+
+    std::ifstream v_shader_file;
+    std::ifstream f_shader_file;
+    std::ifstream g_shader_file;
+
     // ensure ifstream objects can throw exceptions:
-    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    v_shader_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    f_shader_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    g_shader_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
     try {
         // open files
-        vShaderFile.open(vertexPath);
-        fShaderFile.open(fragmentPath);
-        std::stringstream vShaderStream, fShaderStream;
+        v_shader_file.open(vertex_path);
+        f_shader_file.open(fragment_path);
+
+        std::stringstream v_shader_stream, f_shader_stream;
         // read file's buffer contents into streams
-        vShaderStream << vShaderFile.rdbuf();
-        fShaderStream << fShaderFile.rdbuf();
+        v_shader_stream << v_shader_file.rdbuf();
+        f_shader_stream << f_shader_file.rdbuf();
         // close file handlers
-        vShaderFile.close();
-        fShaderFile.close();
+        v_shader_file.close();
+        f_shader_file.close();
         // convert stream into string
-        vertexCode   = vShaderStream.str();
-        fragmentCode = fShaderStream.str();
+        vertex_code   = v_shader_stream.str();
+        fragment_code = f_shader_stream.str();
+
+        if (using_geometry_shader) {
+            g_shader_file.open(geometry_path);
+            std::stringstream g_shader_stream;
+            g_shader_stream << g_shader_file.rdbuf();
+            g_shader_file.close();
+            geometry_code = g_shader_stream.str();
+        }
     } catch (std::ifstream::failure e) {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
+    const char* v_shader_code = vertex_code.c_str();
+    const char* f_shader_code = fragment_code.c_str();
+    const char* g_shader_code = geometry_code.c_str();
 
     // Compile and configure shader program
     // ----------------------------------------------------------------------------------
     // Now for OpenGL to use the shader, need to compile it dynamically
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vShaderCode, NULL);
-    glCompileShader(vertexShader);
+    unsigned int vertex_shader;
+    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, &v_shader_code, NULL);
+    glCompileShader(vertex_shader);
 
     // Can check if the shader compiled correctly
     int success;
     char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
-    // NOTE: If input variable in fragment shader has the same name and type as output +
-    // variable in vertex shader. OpenGL will LINK the two.
-    // NOTE: Uniforms are GLOBAL variables can be accessed at any stage of the shader programs
-    // life.
-
     // Compiling fragment shader is similar to the vertex shader
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fShaderCode, NULL);
-    glCompileShader(fragmentShader);
+    unsigned int fragment_shader;
+    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, &f_shader_code, NULL);
+    glCompileShader(fragment_shader);
     // Check for errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        glGetShaderInfoLog(fragment_shader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    unsigned int geometry_shader;
+
+    if (using_geometry_shader) {
+        // Compiling geometry shader 
+        geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
+        glShaderSource(geometry_shader, 1, &g_shader_code, NULL);
+        glCompileShader(geometry_shader);
+        // Check for errors
+        glGetShaderiv(geometry_shader, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            glGetShaderInfoLog(geometry_shader, 512, NULL, infoLog);
+            std::cout << "ERROR::SHADER::GEOMETRY::COMPILATION_FAILED\n" << infoLog << std::endl;
+        }
     }
 
     // Link the shaders
     // To use our compiled shaders, need to link them to a shader program
     // Shader program will be the one to be called when doing render calls
     ID = glCreateProgram();
-    glAttachShader(ID, vertexShader); // Attach shader to program
-    glAttachShader(ID, fragmentShader);
+    glAttachShader(ID, vertex_shader); // Attach shader to program
+    glAttachShader(ID, fragment_shader);
+    if (using_geometry_shader) {
+        glAttachShader(ID, geometry_shader);
+    }
     glLinkProgram(ID); // Link attached shaders
 
     // Can check if something went wrong
@@ -83,8 +113,12 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::CREATION\n" << infoLog << std::endl;
     }
-    glDeleteShader(vertexShader); // Don't need these shaders, can delete them now
-    glDeleteShader(fragmentShader);
+    glDeleteShader(vertex_shader); // Don't need these shaders, can delete them now
+    glDeleteShader(fragment_shader);
+
+    if (using_geometry_shader) {
+        glDeleteShader(geometry_shader);
+    }
 }
 
 void Shader::use() {
@@ -109,4 +143,8 @@ void Shader::setMat(const std::string& name, glm::mat4& mat) const {
 
 void Shader::setVec3(const std::string& name, const glm::vec3& vec) const {
     glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
+}
+
+void Shader::setUniformBlockBinding(const std::string& name, unsigned int binding) {
+    glUniformBlockBinding(ID, glGetUniformBlockIndex(ID, name.c_str()), binding);
 }

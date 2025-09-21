@@ -43,15 +43,41 @@ Engine::Engine(float window_x, float window_y)
 
     max_lights = 16;
     num_lights = 0;
+
+    draw_normals = false;
 }
 
 void Engine::init() {
-    gameobject_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl");
+    gameobject_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl", "");
     outline_shader =
-        Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl");
-    light_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl");
+        Shader(RESOURCES_PATH "outline_vshader.glsl", RESOURCES_PATH "outline_fshader.glsl", "");
+    light_shader = Shader(RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl", "");
     skybox_shader =
-        Shader(RESOURCES_PATH "skybox_vshader.glsl", RESOURCES_PATH "skybox_fshader.glsl");
+        Shader(RESOURCES_PATH "skybox_vshader.glsl", RESOURCES_PATH "skybox_fshader.glsl", "");
+    normals_shader =
+        Shader(RESOURCES_PATH "normals_vshader.glsl", RESOURCES_PATH "normals_fshader.glsl",
+               RESOURCES_PATH "normals_gshader.glsl");
+
+    // Creating and binding UBOs and uniform blocks
+    // ------------------------------------------
+
+    // Create the UBO for view and projection matrices
+    glGenBuffers(1, &ubo_matrices);
+
+    // Allocate the memory for it
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo_matrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    
+    // Bind to binding point 0
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo_matrices, 0, 2 * sizeof(glm::mat4));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    // Now the shaders
+    gameobject_shader.setUniformBlockBinding("Matrices", 0);
+    outline_shader.setUniformBlockBinding("Matrices", 0);
+    light_shader.setUniformBlockBinding("Matrices", 0);
+    normals_shader.setUniformBlockBinding("Matrices", 0);
 
     // Initialise Cube static variables that need OpenGL to exist
     Cube::init();
@@ -207,15 +233,15 @@ void Engine::render() {
     glm::mat4 projection =
         glm::perspective(glm::radians(active_camera->fov), (window_x / window_y), 0.1f, 100.f);
 
+    // Fill the UBO with view and projection matrices
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo_matrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     gameobject_shader.use();
-    gameobject_shader.setMat("view", view);
-    gameobject_shader.setMat("projection", projection);
     updateShaderLights(gameobject_shader);
     gameobject_shader.setInt("point_lights_number", num_lights);
-
-    light_shader.use();
-    light_shader.setMat("view", view);
-    light_shader.setMat("projection", projection);
 
     skybox_shader.use();
     // Keeping the upper 3x3 of the view matrix removes the element of translation from it.
@@ -247,6 +273,13 @@ void Engine::render() {
     outline_shader.setMat("projection", projection);
 
     renderOutlinedObject();
+
+    if (draw_normals) {
+        // Render normals
+        for (int i = 0; i < game_objects.size(); ++i) {
+            game_objects[i]->draw(normals_shader);
+        }
+    }
 
     // Draw wireframe box representing the bounding box around objects that are
     // selected or mouseover'd
@@ -347,13 +380,6 @@ void Engine::render_imgui() {
                 ImGui::SliderFloat("Quadratic attenuation factor",
                                    &selected_object->light->quadratic, 0, 0.1);
             }
-
-            /*
-            char temp_name[255] = "";
-            ImGui::InputTextWithHint("Object Name", selected_object->name.c_str(), temp_name,
-            IM_ARRAYSIZE(temp_name)); ImGui::LabelText(selected_object->name.c_str(), "Game
-            Object"); selected_object->name = temp_name;
-            */
         }
 
         ImGui::EndTabItem();
@@ -482,8 +508,7 @@ void Engine::render_imgui() {
                 std::cout << "Max number of lights reached" << std::endl;
             } else {
                 unsigned int n = game_objects.size();
-                addCube(placeholder_pos, placeholder_orientation, placeholder_scale,
-                        placeholder_colour, placeholder_shininess);
+                addPlaceholderObject();
 
                 game_objects[n]->add_light(placeholder_light.ambient, placeholder_light.diffuse,
                                            placeholder_light.specular, placeholder_light.constant,
@@ -522,6 +547,11 @@ void Engine::render_imgui() {
     ImGui::Separator();
     ImGui::SetNextItemWidth(120.f);
     ImGui::SliderFloat("Skybox brightness", &Skybox::brightness, 0.0, 1.0);
+
+    ImGui::Separator();
+    ImGui::Separator();
+    ImGui::Text("Toggle Normal Visualisation");
+    ImGui::Checkbox("Visualise Normals", &draw_normals);
 
     ImGui::End();
 }

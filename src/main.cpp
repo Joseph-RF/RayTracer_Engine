@@ -21,11 +21,6 @@ void scroll_callback(GLFWwindow* window, double x_offset, double y_offset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
-// -------------!!!--NOTE--!!!-------------
-// The order of certain things such as defining the shape of our triangle or the
-// shaders used may change depending on the program e.g. a game where appearances
-// and positions change frequently.
-
 // Window size
 const float window_x = 1900.f;
 const float window_y = 1080.f;
@@ -94,15 +89,6 @@ int main() {
     // window specfied is resized. Called when window is first displayed.
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // *----------------------------------------------------------------------------------*
-    // | Depth Testing:  -OpenGL stores all DEPTH information within the DEPTH BUFFER     |
-    // |   -Depth is stored for each fragment. When a fragment's colour is going to be    |
-    // |   drawn, it's depth is compared to see if it is behind anything else.            |
-    // |   -To make sure OpenGL is actually performing depth testing, nweed to enable it  |
-    // |   using glEnable. This is used to enable many other switches other than depthtest|
-    // |   -NOTE: Also need to refresh the depth buffer every frame to avoid previous a   |
-    // |   previous frames buffer being used. Clear similar to colour buffer.             |
-    // *----------------------------------------------------------------------------------*
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);

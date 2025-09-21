@@ -78,6 +78,8 @@ private:
     void renderMoveGizmos(std::shared_ptr<GameObject> game_object, glm::mat4& view,
                           glm::mat4& projection);
 
+    unsigned int ubo_matrices;
+
     float window_x;
     float window_y;
 
@@ -88,6 +90,7 @@ private:
     Shader outline_shader;
     Shader light_shader;
     Shader skybox_shader;
+    Shader normals_shader;
 
     std::shared_ptr<GameObject> mouseover_object;
     std::shared_ptr<GameObject> selected_object;
@@ -135,4 +138,7 @@ private:
     unsigned int brightsky_texture;
     unsigned int starrysky_texture;
     std::map<std::string, unsigned int> skybox_texture_map;
+
+    // Draw normals bool
+    bool draw_normals;
 };

@@ -87,6 +87,8 @@ This section is to list bugs or limitations of the project
 * If window size is set to (1900, 1080), mouse picking fails if window is not made fullscreen (maximise).
 * Using rotation gizmos occassionally results in nan values.
 * No shadows, light passes through objects.
+* Slow performance
+* Unexplained crashes
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
