@@ -1,19 +1,19 @@
 #include <scenesaver.hpp>
 
 namespace SceneSaver {
-void saveScene(Engine& engine) {
+void saveScene(App& app) {
 
     std::ofstream outfile(RESOURCES_PATH "/save_data/test.txt");
 
-    for (unsigned int i = 0; i < engine.game_objects.size(); ++i) {
+    for (unsigned int i = 0; i < app.game_objects.size(); ++i) {
 
         // Game object number
         outfile << std::to_string(i) << " ";
 
-        outfile << engine.game_objects[i]->dataToString();
+        outfile << app.game_objects[i]->dataToString();
     }
 }
-void loadScene(Engine& engine) {
+void loadScene(App& app) {
     // Several assumptions being made in the implementation of this function:
     // All objects are cubes
     // Cubes have the following data members: position, orientation, size, colour
@@ -57,10 +57,10 @@ void loadScene(Engine& engine) {
         }
         infile.close();
 
-        engine.game_objects = new_object_list;
-        engine.num_lights   = num_lights;
+        app.game_objects = new_object_list;
+        app.num_lights   = num_lights;
         // Ensure pointers are reset
-        engine.resetObjectPointers();
+        app.resetObjectPointers();
     } else {
         std::cout << "Unable to open file" << std::endl;
         return;

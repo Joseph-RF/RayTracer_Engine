@@ -57,8 +57,8 @@ void Arrow::draw(Shader& shader) {
     shader.setVec3("colour", colour);
     shader.setFloat("shininess", shininess);
 
-    // 3 vertices per triangle, 2 triangles per sector, 2 cylinders per arrow
-    glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * 2 * Arrow::num_sectors);
+    // 3 vertices per triangle, 2 triangles per sector, 2 cylinders plus 2 circles per arrow
+    glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * (2 + 2) * Arrow::num_sectors);
     glBindVertexArray(0);
 }
 
@@ -238,6 +238,24 @@ std::vector<float> Arrow::generateVertexPositions() {
         vertex_positions.push_back(z + Arrow::tail_height);                                  // z
     }
 
+    // Add triangles for the circle at the base of the arrow tail
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);           // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius);       // y
+        vertex_positions.push_back(z);                                                       // z
+
+        // Vertex 2
+        vertex_positions.push_back(0.0f); // x
+        vertex_positions.push_back(0.0f); // y
+        vertex_positions.push_back(z);    // z
+
+        // Vertex 3
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::tail_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z);                                                       // z
+    }
+
     // Repeat the two loops above but for the arrow head
     // Add the vertex positions for triangles with their base along the bottom
     // of the arrow head
@@ -277,6 +295,24 @@ std::vector<float> Arrow::generateVertexPositions() {
         vertex_positions.push_back(0.0f);                   // x
         vertex_positions.push_back(0.0f);                   // y
         vertex_positions.push_back(z + Arrow::head_height); // z
+    }
+
+    // Add triangles for the circle at the base of the arrow head
+    for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
+        // Vertex 1
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::head_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::head_radius); // y
+        vertex_positions.push_back(z);                                                 // z
+
+        // Vertex 2
+        vertex_positions.push_back(0.0f); // x
+        vertex_positions.push_back(0.0f); // y
+        vertex_positions.push_back(z);    // z
+
+        // Vertex 3
+        vertex_positions.push_back(unit_circles_vertices[(i + 3) % n] * Arrow::head_radius); // x
+        vertex_positions.push_back(unit_circles_vertices[(i + 4) % n] * Arrow::head_radius); // y
+        vertex_positions.push_back(z);                                                       // z
     }
 
     return vertex_positions;

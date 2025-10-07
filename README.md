@@ -76,6 +76,7 @@ cmake --build .
 * Materials
 * Compatibility with the raytracer
 * Add the raytracer to the project
+* Change events from holding floats specific to mouse position and mouse scroll to generic two floats and two ints
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -88,7 +89,7 @@ This section is to list bugs or limitations of the project
 * Using rotation gizmos occassionally results in nan values.
 * No shadows, light passes through objects.
 * Slow performance
-* Unexplained crashes
+* Gizmo's are bouncy
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

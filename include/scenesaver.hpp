@@ -3,12 +3,12 @@
 #include <fstream>
 #include <iostream>
 
-#include <engine.hpp>
+#include <app.hpp>
 
-class Engine;
+class App;
 
 namespace SceneSaver {
-void saveScene(Engine& engine);
+void saveScene(App& app);
 
-void loadScene(Engine& engine);
+void loadScene(App& app);
 } // namespace SceneSaver
