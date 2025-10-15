@@ -6,19 +6,19 @@ AxisMoveGizmo::AxisMoveGizmo(std::string type) {
     glm::vec3 zero(0.0f, 0.0f, 0.0f);
 
     if (type == "X") {
-        this->position_offset = glm::vec3(0.25f * Arrow::tail_height, 0.0, 0.0);
-        this->orientation_offset  = glm::vec3(0.0, glm::radians(90.0f), 0.0);
+        this->position_offset    = glm::vec3(0.25f * Arrow::tail_height, 0.0, 0.0);
+        this->orientation_offset = glm::vec3(0.0, glm::radians(90.0f), 0.0);
         colour                   = glm::vec3(0.8f, 0.0f, 0.0f);
 
         transformation_axes.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
     } else if (type == "Y") {
-        this->position_offset = glm::vec3(0.0, 0.25f * Arrow::tail_height, 0.0);
+        this->position_offset    = glm::vec3(0.0, 0.25f * Arrow::tail_height, 0.0);
         this->orientation_offset = glm::vec3(glm::radians(270.0f), 0.0, 0.0);
         colour                   = glm::vec3(0.0f, 0.8f, 0.0f);
 
         transformation_axes.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
     } else if (type == "Z") {
-        this->position_offset = glm::vec3(0.0, 0.0, 0.25f * Arrow::tail_height);
+        this->position_offset    = glm::vec3(0.0, 0.0, 0.25f * Arrow::tail_height);
         this->orientation_offset = glm::vec3(0.0, 0.0, 0.0);
         colour                   = glm::vec3(0.0f, 0.0f, 0.8f);
 
@@ -53,7 +53,6 @@ void AxisMoveGizmo::updatePosAndOrientation(std::shared_ptr<GameObject> target) 
     body->pos = target->pos + position_offset;
 }
 
-
 void AxisMoveGizmo::updateBoundingBox() {
     body->update_bounding_box();
 }
@@ -68,7 +67,7 @@ void AxisMoveGizmo::transformation_function(glm::vec3& ray_origin, glm::vec3& ra
 
     if (!using_gizmo) {
         previous_pos = closest_point_on_axis;
-        using_gizmo       = true;
+        using_gizmo  = true;
     } else {
         target->pos += (closest_point_on_axis - previous_pos);
         previous_pos = closest_point_on_axis;
@@ -148,8 +147,7 @@ void PlaneMoveGizmo::transformation_function(glm::vec3& ray_origin, glm::vec3& r
 
     glm::vec3 plane_normal = glm::normalize(glm::cross(axis1, axis2));
 
-    if (!Math::rayPlaneIntersection(ray_origin, ray_direction, plane_normal, this->body->pos,
-                                    t)) {
+    if (!Math::rayPlaneIntersection(ray_origin, ray_direction, plane_normal, this->body->pos, t)) {
         return;
     }
 
@@ -157,7 +155,7 @@ void PlaneMoveGizmo::transformation_function(glm::vec3& ray_origin, glm::vec3& r
 
     if (!using_gizmo) {
         previous_pos = plane_intersection;
-        using_gizmo       = true;
+        using_gizmo  = true;
     } else {
         target->pos += (plane_intersection - previous_pos);
         previous_pos = plane_intersection;
@@ -217,7 +215,6 @@ bool RotateGizmo::getActivity() {
     return this->active;
 }
 
-
 void RotateGizmo::draw(Shader& shader) {
     body->draw(shader);
 }
@@ -226,7 +223,7 @@ void RotateGizmo::updatePosAndOrientation(std::shared_ptr<GameObject> target) {
     // Update the position and orientation based off of the target object
     body->pos         = target->pos + position_offset;
     body->orientation = target->orientation * (transformation_axes[0] + transformation_axes[1]) +
-                        orientation_offset; 
+                        orientation_offset;
 }
 
 void RotateGizmo::updateBoundingBox() {
@@ -244,8 +241,7 @@ void RotateGizmo::transformation_function(glm::vec3& ray_origin, glm::vec3& ray_
 
     glm::vec3 plane_normal = glm::normalize(glm::cross(axis1, axis2));
 
-    if (!Math::rayPlaneIntersection(ray_origin, ray_direction, plane_normal, this->body->pos,
-                                    t)) {
+    if (!Math::rayPlaneIntersection(ray_origin, ray_direction, plane_normal, this->body->pos, t)) {
         return;
     }
 
@@ -253,7 +249,7 @@ void RotateGizmo::transformation_function(glm::vec3& ray_origin, glm::vec3& ray_
 
     if (!using_gizmo) {
         previous_pos = plane_intersection;
-        using_gizmo       = true;
+        using_gizmo  = true;
         return;
     }
 

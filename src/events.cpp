@@ -54,8 +54,8 @@ void EventManager::update() {
 }
 
 void EventManager::addScreenResizeEvent(int width, int height) {
-    events.push(
-        Event(Action::SCREEN_RESIZE, static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f));
+    events.push(Event(Action::SCREEN_RESIZE, static_cast<float>(width), static_cast<float>(height),
+                      0.0f, 0.0f));
 }
 
 void EventManager::keyEvent(Key key, bool pressed) {

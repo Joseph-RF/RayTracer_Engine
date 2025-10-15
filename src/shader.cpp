@@ -84,7 +84,7 @@ Shader::Shader(const char* vertex_path, const char* fragment_path, const char* g
     unsigned int geometry_shader;
 
     if (using_geometry_shader) {
-        // Compiling geometry shader 
+        // Compiling geometry shader
         geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
         glShaderSource(geometry_shader, 1, &g_shader_code, NULL);
         glCompileShader(geometry_shader);

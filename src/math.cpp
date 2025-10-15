@@ -1,8 +1,8 @@
 #include "math.hpp"
 
 bool Math::rayPlaneIntersection(const glm::vec3& ray_origin, const glm::vec3& ray_direction,
-                          const glm::vec3& plane_normal, const glm::vec3& plane_position,
-                          float& t) {
+                                const glm::vec3& plane_normal, const glm::vec3& plane_position,
+                                float& t) {
     // Ray direction and Plane Normal MUST be normalised
     float denom = glm::dot(plane_normal, ray_direction);
     if (std::abs(denom) > 1e-6) {
@@ -13,8 +13,10 @@ bool Math::rayPlaneIntersection(const glm::vec3& ray_origin, const glm::vec3& ra
     return false;
 }
 
-glm::vec3 Math::closestPointBetweenRays(const glm::vec3& ray1_origin, const glm::vec3& ray1_direction,
-                                  const glm::vec3& ray2_origin, const glm::vec3& ray2_direction) {
+glm::vec3 Math::closestPointBetweenRays(const glm::vec3& ray1_origin,
+                                        const glm::vec3& ray1_direction,
+                                        const glm::vec3& ray2_origin,
+                                        const glm::vec3& ray2_direction) {
     // Returns the closest point between ray1 and ray2.
     // Closest point lies on ray1.
     // Directions MUST be normalised

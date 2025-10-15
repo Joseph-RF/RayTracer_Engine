@@ -77,13 +77,13 @@ vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir) {
 
     // Specular Light
     // -------------------------------------
-    // NOTE: reflect function expects first component to point FROM light TO object
-    vec3 reflected_direction = reflect(-light_direction, norm);
+    // Using Blinn-Phong, using halfway vector between viewing direction and light direction
+    vec3 halfway_dir = normalize(view_dir + light_direction);
 
     // Power index represents how "focused" the specular component is on the face
     // The higher it is, the more concentrated, the lower it is, the more spread out
     // NOTE: material here is the global variable material found at this fragment
-    float specular_factor = pow(max(dot(view_dir, reflected_direction), 0.0), shininess);
+    float specular_factor = pow(max(dot(norm, halfway_dir), 0.0), shininess);
     vec3 specular = specular_factor * light.colour * light.specular * colour;
 
     return ambient + diffuse + specular;
@@ -113,8 +113,8 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
 
     // Specular
     // -------------------------------------
-    // NOTE: reflect function expects first component to point FROM light TO object
-    vec3 reflected_direction = reflect(-light_direction, norm);
+    // Using Blinn-Phong, using halfway vector between viewing direction and light direction
+    vec3 halfway_dir = normalize(view_dir + light_direction);
 
     // Power index represents how "focused" the specular component is on the face
     // The higher it is, the more concentrated, the lower it is, the more spread out
@@ -124,7 +124,7 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     // Below check prevents a specular components on fragments facing away from 
     // light source
     if(dot(light_direction, norm) > 0.0) {
-        specular_factor = pow(max(dot(view_dir, reflected_direction), 0.0), shininess);
+        specular_factor = pow(max(dot(norm, halfway_dir), 0.0), shininess);
     }
 
     vec3 specular = specular_factor * light.specular * light.colour * colour;

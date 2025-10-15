@@ -9,8 +9,8 @@
 
 #include <iostream>
 
-#include <iwindowmanager.hpp>
 #include <imgui_utility.hpp>
+#include <iwindowmanager.hpp>
 
 class GLFWWindowManager : public IWindowManager {
 public:

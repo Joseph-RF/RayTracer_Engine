@@ -241,9 +241,9 @@ std::vector<float> Arrow::generateVertexPositions() {
     // Add triangles for the circle at the base of the arrow tail
     for (unsigned int i = 0; i < unit_circles_vertices.size(); i += 3) {
         // Vertex 1
-        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);           // x
-        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius);       // y
-        vertex_positions.push_back(z);                                                       // z
+        vertex_positions.push_back(unit_circles_vertices[i] * Arrow::tail_radius);     // x
+        vertex_positions.push_back(unit_circles_vertices[i + 1] * Arrow::tail_radius); // y
+        vertex_positions.push_back(z);                                                 // z
 
         // Vertex 2
         vertex_positions.push_back(0.0f); // x
@@ -423,7 +423,7 @@ std::shared_ptr<Arrow> createArrowFromData(std::string& data) {
 
     std::shared_ptr<Arrow> temp =
         std::make_shared<Arrow>(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0),
-                                glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 32.0f);
+                                glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 85.0f);
 
     str = "";
     ss >> str; // Get rid of the number

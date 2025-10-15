@@ -8,20 +8,19 @@
 #include <map>
 #include <typeinfo>
 
-#include <camera.hpp>
-#include <shader.hpp>
-#include <glfwwindowmanager.hpp>
 #include <arrow.hpp>
+#include <camera.hpp>
 #include <cube.hpp>
+#include <gizmo.hpp>
+#include <glfwwindowmanager.hpp>
 #include <hollow_cylinder.hpp>
+#include <math.hpp>
 #include <scenesaver.hpp>
+#include <shader.hpp>
 #include <skybox.hpp>
 #include <sphere.hpp>
 #include <texture_utility.hpp>
-#include <math.hpp>
-#include <gizmo.hpp>
-
-enum class GizmoType { MOVE, ROTATE };
+#include <renderer.hpp>
 
 class App {
 public:
@@ -56,14 +55,11 @@ private:
     Camera engine_camera;
     Camera raytracer_camera;
 
-    // Shaders
-    ShaderLibrary shader_library;
+    // Renderer
+    Renderer renderer;
 
-    //unsigned int num_lights;
-    unsigned int max_lights;
-
-    // Buffers objects
-    unsigned int ubo_matrices;
+    // unsigned int num_lights;
+    const unsigned int max_lights;
 
     // Objects
     std::shared_ptr<GameObject> mouseover_object;
@@ -97,18 +93,10 @@ private:
     // Draw normals bool
     bool draw_normals;
 
-    // Texture image file names for skybox faces
-    std::string active_skybox_texture_name;
-    unsigned int brightsky_texture;
-    unsigned int starrysky_texture;
-    std::map<std::string, unsigned int> skybox_texture_map;
-
     // Initialising functions
     bool init();
-    void initShaders();
     void initObjects();
     void initGizmos();
-    void initSkyboxes();
     void initScene();
 
     // Updating functions
@@ -118,11 +106,6 @@ private:
     // Rendering functions
     void render();
     void renderImGUI();
-    void setLightUniforms(Shader& shader);
-    void renderOutlinedObject();
-    void renderBbox(std::shared_ptr<GameObject> game_object, glm::mat4& view,
-                    glm::mat4& projection);
-    void renderGizmos(glm::mat4& view, glm::mat4& projection);
 
     // Pseudo initialising functions
     void addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
@@ -132,6 +115,7 @@ private:
 
     // Pseudo updating functions
     void processMouseMovement(float mouse_xpos, float mouse_ypos);
+    void processScreenResize(float new_window_x, float new_window_y);
     // Mouse intersection functions
     glm::vec3 mouseRaycast(float mouse_x, float mouse_y);
     void mouseObjectsIntersect(float mouse_x, float mouse_y);

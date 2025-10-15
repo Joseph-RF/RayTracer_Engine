@@ -77,6 +77,7 @@ cmake --build .
 * Compatibility with the raytracer
 * Add the raytracer to the project
 * Change events from holding floats specific to mouse position and mouse scroll to generic two floats and two ints
+* Consider giving gameobjects a flag to substitute mouseover and selected functionality
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -90,6 +91,7 @@ This section is to list bugs or limitations of the project
 * No shadows, light passes through objects.
 * Slow performance
 * Gizmo's are bouncy
+* Specular component doesn't work correctly. Compare how specular component behaves in blue cube compared to green cube
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

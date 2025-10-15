@@ -1,6 +1,8 @@
 #include <app.hpp>
 
-App::App(int window_x, int window_y) {
+App::App(int window_x, int window_y)
+    : renderer(window_x, window_y, 16)
+    , max_lights(16) {
     // Window properties
     this->window_x = window_x;
     this->window_y = window_y;
@@ -18,12 +20,10 @@ App::App(int window_x, int window_y) {
     mouse_pressed        = false;
 
     // Camera
-    active_camera    = &engine_camera;
+    active_camera = &engine_camera;
 
     // Shaders
-    max_lights = 16;
     num_lights = 0;
-    ubo_matrices = 0;
 
     // Objects
     mouseover_object = nullptr;
@@ -34,7 +34,7 @@ App::App(int window_x, int window_y) {
     placeholder_orientation = glm::vec3(0.0, 0.0, 0.0);
     placeholder_scale       = glm::vec3(1.0, 1.0, 1.0);
     placeholder_colour      = glm::vec3(0.0, 0.0, 0.0);
-    placeholder_shininess   = 32.0f;
+    placeholder_shininess   = 85.0f;
     placeholder_light       = Light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
 
     placeholder_object_type = "CUBE";
@@ -42,7 +42,7 @@ App::App(int window_x, int window_y) {
 
     // Gizmos
     mouseover_gizmo = nullptr;
-    centre_gizmo = std::make_shared<Sphere>();
+    centre_gizmo    = std::make_shared<Sphere>();
 
     // Gizmo functionality
     using_gizmo       = false;
@@ -50,10 +50,6 @@ App::App(int window_x, int window_y) {
     active_gizmo_type = GizmoType::MOVE;
 
     draw_normals = false;
-
-    // Textures
-    brightsky_texture = 0;
-    starrysky_texture = 0;
 }
 
 App::~App() {}
@@ -86,29 +82,8 @@ bool App::init() {
         return false;
     }
 
-    // Initialise other things
-    initShaders();
-    // Consider moving the below with the shaders
-    // Creating and binding UBOs and uniform blocks
-    // ------------------------------------------
-
-    // Create the UBO for view and projection matrices
-    glGenBuffers(1, &ubo_matrices);
-
-    // Allocate the memory for it
-    glBindBuffer(GL_UNIFORM_BUFFER, ubo_matrices);
-    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
-
-    // Bind to binding point 0
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo_matrices, 0, 2 * sizeof(glm::mat4));
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    // Now the shaders
-    shader_library.get("phong").setUniformBlockBinding("Matrices", 0);
-    shader_library.get("outline").setUniformBlockBinding("Matrices", 0);
-    shader_library.get("lights").setUniformBlockBinding("Matrices", 0);
-    shader_library.get("normals").setUniformBlockBinding("Matrices", 0);
+    // Initialise renderer
+    renderer.init();
 
     // Initialise object static variables
     initObjects();
@@ -116,33 +91,10 @@ bool App::init() {
     // Initialise gizmo properties
     initGizmos();
 
-    // Initialise skybox and textures
-    initSkyboxes();
-
     // Initialise the scene
     initScene();
 
-    // Set OpenGL flags
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_MULTISAMPLE);
-
     return true;
-}
-
-void App::initShaders() {
-    shader_library.create("phong", RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl",
-                          "");
-    shader_library.create("outline", RESOURCES_PATH "outline_vshader.glsl",
-                          RESOURCES_PATH "outline_fshader.glsl", "");
-    shader_library.create("lights", RESOURCES_PATH "vshader.glsl",
-                          RESOURCES_PATH "light_fshader.glsl", "");
-    shader_library.create("skybox", RESOURCES_PATH "skybox_vshader.glsl",
-                          RESOURCES_PATH "skybox_fshader.glsl", "");
-    shader_library.create("normals", RESOURCES_PATH "normals_vshader.glsl",
-                          RESOURCES_PATH "normals_fshader.glsl",
-                          RESOURCES_PATH "normals_gshader.glsl");
 }
 
 void App::initObjects() {
@@ -160,10 +112,10 @@ void App::initGizmos() {
     gizmos["X_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("X");
     gizmos["X_AXIS_MOVE"]->toggleActivity();
 
-    gizmos["Y_AXIS_MOVE"]   = std::make_shared<AxisMoveGizmo>("Y");
+    gizmos["Y_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("Y");
     gizmos["Y_AXIS_MOVE"]->toggleActivity();
 
-    gizmos["Z_AXIS_MOVE"]   = std::make_shared<AxisMoveGizmo>("Z");
+    gizmos["Z_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("Z");
     gizmos["Z_AXIS_MOVE"]->toggleActivity();
 
     gizmos["XY_PLANE_MOVE"] = std::make_shared<PlaneMoveGizmo>("XY");
@@ -185,36 +137,11 @@ void App::initGizmos() {
     centre_gizmo->name   = "CENTRE_GIZMO";
 }
 
-void App::initSkyboxes() {
-    Skybox::init();
-    std::vector<std::string> skybox_faces = {RESOURCES_PATH "textures/brightsky/right.jpg",
-                                             RESOURCES_PATH "textures/brightsky/left.jpg",
-                                             RESOURCES_PATH "textures/brightsky/top.jpg",
-                                             RESOURCES_PATH "textures/brightsky/bottom.jpg",
-                                             RESOURCES_PATH "textures/brightsky/front.jpg",
-                                             RESOURCES_PATH "textures/brightsky/back.jpg"};
-
-    brightsky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
-
-    skybox_faces = {RESOURCES_PATH "textures/starrysky/right.jpg",
-                    RESOURCES_PATH "textures/starrysky/left.jpg",
-                    RESOURCES_PATH "textures/starrysky/top.jpg",
-                    RESOURCES_PATH "textures/starrysky/bottom.jpg",
-                    RESOURCES_PATH "textures/starrysky/front.jpg",
-                    RESOURCES_PATH "textures/starrysky/back.jpg"};
-
-    starrysky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
-
-    skybox_texture_map["brightsky"] = brightsky_texture;
-    skybox_texture_map["starrysky"] = starrysky_texture;
-    active_skybox_texture_name      = "brightsky";
-}
-
 void App::initScene() {
     addCube(glm::vec3(8.0, -2.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0),
-            glm::vec3(0.0, 0.8, 0.0), 32.0);
+            glm::vec3(0.0, 0.8, 0.0), 85.0);
     addCube(glm::vec3(-2.0, -2.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0),
-            glm::vec3(0.0, 0.0, 0.6), 32.0);
+            glm::vec3(0.0, 0.0, 0.6), 85.0);
     addPointLight(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.2, 0.2, 0.2),
                   glm::vec3(1.0, 1.0, 1.0));
 }
@@ -250,8 +177,8 @@ void App::runActions() {
         // Consider using a switch statement for the below
         switch (event_manager->events.front().action) {
         case Action::SCREEN_RESIZE:
-            window_x = static_cast<int>(event_manager->events.front().mouse_xpos);
-            window_y = static_cast<int>(event_manager->events.front().mouse_ypos);
+            processScreenResize(event_manager->events.front().mouse_xpos,
+                                event_manager->events.front().mouse_ypos);
             break;
         case Action::MOVE_FORWARD:
             active_camera->processKeyboard(FORWARD, delta_time);
@@ -339,79 +266,47 @@ void App::runActions() {
 }
 
 void App::render() {
-    // Refresh OpenGL buffers
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    renderer.renderPrep(active_camera);
 
-    // Imgui
-    // ----------------------------------------------------
     // After clearing the OpenGL buffer, need to let ImGui know that we are now going
     // to work on the new frame
     window_manager->newImGuiFrame();
 
-    // View and projection matrices won't change between objects
-    glm::mat4 view = active_camera->lookAt();
-    glm::mat4 projection = glm::perspective(
-        glm::radians(active_camera->fov),
-        (static_cast<float>(window_x) / static_cast<float>(window_y)), 0.1f, 100.f);
-
-    // Fill the UBO with view and projection matrices
-    glBindBuffer(GL_UNIFORM_BUFFER, ubo_matrices);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    shader_library.get("phong").use();
-    setLightUniforms(shader_library.get("phong"));
-    shader_library.get("phong").setInt("point_lights_number", num_lights);
-
-    shader_library.get("skybox").use();
-    // Keeping the upper 3x3 of the view matrix removes the element of translation from it.
-    // Skybox will stay centred around the camera
-    shader_library.get("skybox").setMat("view", glm::mat4(glm::mat3(view)));
-    shader_library.get("skybox").setMat("projection", projection);
-
-    Skybox::draw(shader_library.get("skybox"), skybox_texture_map[active_skybox_texture_name]);
-
-    // Draw objects that don't need to be outlined first first
-
-    for (int i = 0; i < game_objects.size(); ++i) {
-
-        if (game_objects[i] == selected_object || game_objects[i] == mouseover_object) {
-            continue;
-        }
-
-        // Draw lights with one shader, objects in another
-        if (game_objects[i]->light) {
-            game_objects[i]->draw(shader_library.get("lights"));
-        } else {
-            game_objects[i]->draw(shader_library.get("phong"));
-        }
+    // Disable the objects that need to be outlined for scene rendering
+    if (selected_object) {
+        selected_object->visible = false;
+    }
+    if (mouseover_object) {
+        mouseover_object->visible = false;
     }
 
-    // Draw objects that need to be outlined
-    shader_library.get("outline").use();
-    shader_library.get("outline").setMat("view", view);
-    shader_library.get("outline").setMat("projection", projection);
+    // Render scene
+    renderer.renderScene(game_objects, active_camera);
 
-    renderOutlinedObject();
+    // Make objects that need to be outlined visible again
+    if (selected_object) {
+        selected_object->visible = true;
+    }
+    if (mouseover_object) {
+        mouseover_object->visible = true;
+    }
+    renderer.renderOutlinedObjects(selected_object, mouseover_object);
 
     if (draw_normals) {
-        // Render normals
-        for (int i = 0; i < game_objects.size(); ++i) {
-            game_objects[i]->draw(shader_library.get("normals"));
-        }
+        renderer.renderNormals(game_objects);
     }
 
     // Draw wireframe box representing the bounding box around objects that are
     // selected or mouseover'd
     if (mouseover_object) {
-        renderBbox(mouseover_object, view, projection);
+        renderer.renderBbox(mouseover_object, bbox_wireframe);
     }
     if (selected_object) {
-        renderBbox(selected_object, view, projection);
-        renderGizmos(view, projection);
+        renderer.renderBbox(selected_object, bbox_wireframe);
+        renderer.renderGizmos(gizmos, mouseover_gizmo, active_gizmo_type);
     }
+
+    renderer.renderScreen();
 
     // After drawing OpenGL objects, draw ImGUI
     renderImGUI();
@@ -479,7 +374,7 @@ void App::renderImGUI() {
             ImGui::ColorEdit3("Colour", glm::value_ptr(selected_object->colour));
 
             ImGui::SetNextItemWidth(120.f);
-            ImGui::SliderFloat("Shininess", &selected_object->shininess, 0.0f, 100.0f);
+            ImGui::SliderFloat("Shininess", &selected_object->shininess, 0.0f, 200.0f);
 
             if (selected_object->light) {
 
@@ -601,7 +496,7 @@ void App::renderImGUI() {
         ImGui::ColorEdit3("Colour", glm::value_ptr(placeholder_colour));
 
         ImGui::SetNextItemWidth(120.f);
-        ImGui::SliderFloat("Shininess", &placeholder_shininess, 0.0f, 100.0f);
+        ImGui::SliderFloat("Shininess", &placeholder_shininess, 0.0f, 200.0f);
 
         if (ImGui::Button("Add Object")) {
             addPlaceholderObject();
@@ -645,6 +540,7 @@ void App::renderImGUI() {
                                            placeholder_light.linear, placeholder_light.quadratic);
 
                 num_lights++;
+                renderer.setNumLights(num_lights);
 
                 selected_object  = game_objects[n];
                 mouseover_object = nullptr;
@@ -662,12 +558,11 @@ void App::renderImGUI() {
     ImGui::Begin("Skybox Menu");
 
     ImGui::SetNextItemWidth(120.f);
-    if (ImGui::BeginCombo("Select skybox", active_skybox_texture_name.c_str())) {
-        std::map<std::string, unsigned int>::iterator it;
-        for (it = skybox_texture_map.begin(); it != skybox_texture_map.end(); ++it) {
-            bool is_selected = (active_skybox_texture_name == it->first);
+    if (ImGui::BeginCombo("Select skybox", renderer.get_active_skybox_name().c_str())) {
+        for (auto it = renderer.get_skyboxes().begin(); it != renderer.get_skyboxes().end(); ++it) {
+            bool is_selected = (renderer.get_active_skybox_name() == it->first);
             if (ImGui::Selectable(it->first.c_str(), is_selected)) {
-                active_skybox_texture_name = it->first;
+                renderer.get_active_skybox_name() = it->first;
             }
         }
         ImGui::EndCombo();
@@ -686,169 +581,8 @@ void App::renderImGUI() {
     ImGui::End();
 }
 
-void App::setLightUniforms(Shader& shader) {
-    shader.use();
-    unsigned int counter = 0;
-
-    for (unsigned int i = 0; i < game_objects.size(); ++i) {
-
-        if (counter > max_lights) {
-            std::cout << "Counter somehow greater than number of max light" << std::endl;
-        }
-
-        if (game_objects[i]->light) {
-            shader.setVec3("point_lights[" + std::to_string(counter) + "].position",
-                           game_objects[i]->pos);
-            shader.setVec3("point_lights[" + std::to_string(counter) + "].colour",
-                           game_objects[i]->colour);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].ambient",
-                            game_objects[i]->light->ambient);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].diffuse",
-                            game_objects[i]->light->diffuse);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].specular",
-                            game_objects[i]->light->specular);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].constant",
-                            game_objects[i]->light->constant);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].linear",
-                            game_objects[i]->light->linear);
-            shader.setFloat("point_lights[" + std::to_string(counter) + "].quadratic",
-                            game_objects[i]->light->quadratic);
-
-            counter++;
-        }
-    }
-}
-
-void App::renderOutlinedObject() {
-
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // Draw selected object
-    if (selected_object) {
-
-        if (selected_object->light) {
-            selected_object->draw(shader_library.get("lights"));
-        } else {
-            selected_object->draw(shader_library.get("phong"));
-        }
-        // Draw outline of selected object
-        selected_object->scale *= 1.05;
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-
-        glDisable(GL_DEPTH_TEST);
-
-        selected_object->draw(shader_library.get("outline"));
-
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glEnable(GL_DEPTH_TEST);
-        glStencilMask(0xFF);
-        selected_object->scale /= 1.05;
-    }
-
-    // Draw mouseover object
-    if (mouseover_object) {
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-        if (mouseover_object->light) {
-            mouseover_object->draw(shader_library.get("lights"));
-        } else {
-            mouseover_object->draw(shader_library.get("phong"));
-        }
-
-        // Draw outline of mouseover object
-        mouseover_object->scale *= 1.05;
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-
-        glDisable(GL_DEPTH_TEST);
-
-        mouseover_object->draw(shader_library.get("outline"));
-
-        // Reset mouseover object size and stencil, depth buffer settings
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glEnable(GL_DEPTH_TEST);
-        glStencilMask(0xFF);
-        mouseover_object->scale /= 1.05;
-    }
-
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-}
-
-void App::renderBbox(std::shared_ptr<GameObject> game_object, glm::mat4& view,
-                        glm::mat4& projection) {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    bbox_wireframe.pos    = game_object->pos;
-    bbox_wireframe.colour = game_object->colour;
-
-    bbox_wireframe.scale.x = game_object->bbox.xmax - game_object->bbox.xmin;
-    bbox_wireframe.scale.y = game_object->bbox.ymax - game_object->bbox.ymin;
-    bbox_wireframe.scale.z = game_object->bbox.zmax - game_object->bbox.zmin;
-
-    // Going to use a simple fragment shader for the wireframe box
-    shader_library.get("lights").use();
-    shader_library.get("lights").setMat("projection", projection);
-    shader_library.get("lights").setMat("view", view);
-    bbox_wireframe.draw(shader_library.get("lights"));
-
-    // Set polygon mode back to normal after rendering the wireframe box
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
-void App::renderGizmos(glm::mat4& view, glm::mat4& projection) {
-
-    glDisable(GL_DEPTH_TEST);
-
-    float scaling_factor = 1.0f;
-    if (active_gizmo_type == GizmoType::MOVE) {
-        // If move gizmos are active:
-        scaling_factor = 1.2f;
-    } else if (active_gizmo_type == GizmoType::ROTATE) {
-        scaling_factor = 1.05f;
-
-        // Enable depth testing for rotation gizmos
-        glEnable(GL_DEPTH_TEST);
-    }
-
-    // Make gizmo mouse is currently over invisble until it is drawn larger
-    if (mouseover_gizmo) {
-        mouseover_gizmo->body->visible = false;
-    }
-
-    shader_library.get("lights").use();
-    shader_library.get("lights").setMat("projection", projection);
-    shader_library.get("lights").setMat("view", view);
-
-    for (auto& it : gizmos) {
-        if (it.second->getActivity()) {
-            it.second->draw(shader_library.get("lights"));
-        }
-    }
-
-    // Render the gizmo mouse is currently over but larger and brighter
-    if (mouseover_gizmo) {
-        mouseover_gizmo->body->visible = true;
-        mouseover_gizmo->body->scale *= scaling_factor;
-        mouseover_gizmo->body->colour *= 1.2f;
-        mouseover_gizmo->draw(shader_library.get("lights"));
-        mouseover_gizmo->body->scale /= scaling_factor;
-        mouseover_gizmo->body->colour /= 1.2f;
-    }
-
-    // Disablle depth testing for the centre gizmo
-    glDisable(GL_DEPTH_TEST);
-
-    // Want the centre gizmo to always be visible so draw it last
-    centre_gizmo->draw(shader_library.get("lights"));
-
-    glEnable(GL_DEPTH_TEST);
-}
-
 void App::addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
-                     float shininess) {
+                  float shininess) {
     // Use this number to name the object (cube)
     unsigned int n = game_objects.size();
 
@@ -879,15 +613,15 @@ void App::addPlaceholderObject() {
     game_objects[n]->name = "Object_" + std::to_string(n);
 }
 
-void App::addPointLight(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale,
-                           glm::vec3 colour) {
+void App::addPointLight(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour) {
     unsigned int n = game_objects.size();
-    addCube(pos, orientation, scale, colour, 32.0f);
+    addCube(pos, orientation, scale, colour, 85.0f);
 
     game_objects[n]->add_light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
     game_objects[n]->name = "Object_" + std::to_string(n);
 
     num_lights++;
+    renderer.setNumLights(num_lights);
 }
 
 void App::processMouseMovement(float mouse_xpos, float mouse_ypos) {
@@ -912,6 +646,13 @@ void App::processMouseMovement(float mouse_xpos, float mouse_ypos) {
     }
 }
 
+void App::processScreenResize(float new_window_x, float new_window_y) {
+    window_x = static_cast<int>(new_window_x);
+    window_y = static_cast<int>(new_window_y);
+
+    renderer.processScreenResize(window_x, window_y);
+}
+
 glm::vec3 App::mouseRaycast(float mouse_x, float mouse_y) {
     // Mouse position in x and y with it's z at the very far end of the
     // NDC space
@@ -922,8 +663,9 @@ glm::vec3 App::mouseRaycast(float mouse_x, float mouse_y) {
     // w coordinate set to 1 to keep things simple
     glm::vec4 mouse_clip = glm::vec4(mouse_ndc.x, mouse_ndc.y, 1.0, 1.0);
 
-    glm::mat4 projection =
-        glm::perspective(glm::radians(active_camera->fov), (static_cast<float>(window_x) / static_cast<float>(window_y)), 0.1f, 100.f);
+    glm::mat4 projection = glm::perspective(
+        glm::radians(active_camera->fov),
+        (static_cast<float>(window_x) / static_cast<float>(window_y)), 0.1f, 100.f);
 
     glm::mat4 view = active_camera->lookAt();
 
@@ -944,8 +686,15 @@ void App::mouseObjectsIntersect(float mouse_x, float mouse_y) {
     // Keep track of whether any object is under the mouse
     bool mouseover = false;
 
+    // As this function essentially checks to see if an object should become
+    // the mouseover object, will ignore completely if using a gizmo
+    if (using_gizmo) {
+        return;
+    }
+
     for (unsigned int i = 0; i < game_objects.size(); ++i) {
-        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction, game_objects[i]->bbox)) {
+        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction,
+                                             game_objects[i]->bbox)) {
             if (selected_object == game_objects[i] && selected_object) {
                 // Ignore this check if the item currently being hovered over is the
                 // selected object. Ensure selected_object is an actual object and not
@@ -973,8 +722,9 @@ void App::mouseGizmosIntersect(float mouse_x, float mouse_y) {
             // If inactive, don't check
             continue;
         }
-        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction, it.second->body->bbox)) {
-            mouseover_gizmo     = it.second;
+        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction,
+                                             it.second->body->bbox)) {
+            mouseover_gizmo  = it.second;
             mouse_over_gizmo = true;
         }
     }

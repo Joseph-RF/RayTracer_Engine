@@ -12,9 +12,9 @@ public:
     virtual bool shouldWindowClose() = 0;
     virtual ~IWindowManager()        = default;
 
-    virtual void newImGuiFrame()       = 0;
-    virtual void toggleMouse() = 0;
-    virtual float getTime()    = 0;
+    virtual void newImGuiFrame() = 0;
+    virtual void toggleMouse()   = 0;
+    virtual float getTime()      = 0;
 
 private:
 };

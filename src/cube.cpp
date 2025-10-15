@@ -217,10 +217,6 @@ void Cube::init() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // Vertex texture coords
-    // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 *
-    // sizeof(float))); glEnableVertexAttribArray(2);
-
     glBindVertexArray(0);
 }
 

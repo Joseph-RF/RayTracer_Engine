@@ -3,7 +3,7 @@
 namespace Skybox {
 unsigned int VBO;
 unsigned int VAO;
-float brightness = 1.0;
+float brightness = 0.7f;
 
 void draw(Shader& shader, unsigned int texture_id) {
     glBindVertexArray(Skybox::VAO);
