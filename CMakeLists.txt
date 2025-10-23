@@ -62,7 +62,9 @@ target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC GLFW_INCLUDE_NONE=1)
 # depending on whether Debug or Release is being used. This removes that.
 if(PRODUCTION_BUILD)
 	# Setup the RESOURCES_PATH macro to be in the root folder of your exe. For release/production
-	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/") 
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/")
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC SHADERS_PATH="./resources/shaders/")
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC TEXTURES_PATH="./resources/textures/")
 
 	# remove the option to debug asserts.
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC PRODUCTION_BUILD=1) 
@@ -71,6 +73,8 @@ if(PRODUCTION_BUILD)
 else()
 	# This is useful to get an RESOURCES_PATH in your IDE during development
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC SHADERS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/")
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC TEXTURES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/textures/")
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC PRODUCTION_BUILD=0) 
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC DEVELOPMENT_BUILD=1)
 

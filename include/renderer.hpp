@@ -14,7 +14,7 @@ public:
 
     void init();
 
-    void renderPrep(Camera* camera);
+    void renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
     void renderScene(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
     void renderOutlinedObjects(std::shared_ptr<GameObject> selected_object,
                                std::shared_ptr<GameObject> mouseover_object);
@@ -34,12 +34,12 @@ public:
 private:
     void initShaders();
     void initSkyboxes();
-    void initFramebuffer();
+    void initFramebuffers();
     void initScreenQuad();
 
-    void configUniformBufferObjects();
-
+    void setUniformBufferObjects();
     void setLightUniforms(Shader& shader, std::vector<std::shared_ptr<GameObject>>& objects);
+
 
     // Window properties
     int window_width;

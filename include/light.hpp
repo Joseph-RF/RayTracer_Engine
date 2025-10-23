@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glad/glad.h>
+
+
 class Light {
 public:
     Light();

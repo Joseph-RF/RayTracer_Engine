@@ -33,7 +33,7 @@ App::App(int window_x, int window_y)
     placeholder_pos         = glm::vec3(0.0, 0.0, 0.0);
     placeholder_orientation = glm::vec3(0.0, 0.0, 0.0);
     placeholder_scale       = glm::vec3(1.0, 1.0, 1.0);
-    placeholder_colour      = glm::vec3(0.0, 0.0, 0.0);
+    placeholder_colour      = glm::vec3(1.0, 1.0, 1.0);
     placeholder_shininess   = 85.0f;
     placeholder_light       = Light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
 
@@ -142,8 +142,8 @@ void App::initScene() {
             glm::vec3(0.0, 0.8, 0.0), 85.0);
     addCube(glm::vec3(-2.0, -2.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0),
             glm::vec3(0.0, 0.0, 0.6), 85.0);
-    addPointLight(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.2, 0.2, 0.2),
-                  glm::vec3(1.0, 1.0, 1.0));
+    placeholder_colour = glm::vec3(0.7f, 0.7f, 0.7f);
+    addPointLight(0.1f, 0.8f, 1.0f, 1.0f, 0.09f, 0.032f);
 }
 
 void App::update() {
@@ -266,7 +266,7 @@ void App::runActions() {
 }
 
 void App::render() {
-    renderer.renderPrep(active_camera);
+    renderer.renderPrep(game_objects, active_camera);
 
     // After clearing the OpenGL buffer, need to let ImGui know that we are now going
     // to work on the new frame
@@ -429,6 +429,10 @@ void App::renderImGUI() {
                 if (selected_object == *it) {
                     selected_object = nullptr;
                 }
+                if ((*it)->light) {
+                    num_lights--;
+                    renderer.setNumLights(num_lights);
+                }
                 it = game_objects.erase(it);
             } else {
                 it++;
@@ -533,14 +537,10 @@ void App::renderImGUI() {
                 std::cout << "Max number of lights reached" << std::endl;
             } else {
                 unsigned int n = game_objects.size();
-                addPlaceholderObject();
 
-                game_objects[n]->add_light(placeholder_light.ambient, placeholder_light.diffuse,
-                                           placeholder_light.specular, placeholder_light.constant,
-                                           placeholder_light.linear, placeholder_light.quadratic);
-
-                num_lights++;
-                renderer.setNumLights(num_lights);
+                addPointLight(placeholder_light.ambient, placeholder_light.diffuse,
+                              placeholder_light.specular, placeholder_light.constant,
+                              placeholder_light.linear, placeholder_light.quadratic);
 
                 selected_object  = game_objects[n];
                 mouseover_object = nullptr;
@@ -613,11 +613,12 @@ void App::addPlaceholderObject() {
     game_objects[n]->name = "Object_" + std::to_string(n);
 }
 
-void App::addPointLight(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour) {
+void App::addPointLight(float ambient, float diffuse, float specular, float constant, float linear,
+                        float quadratic) {
     unsigned int n = game_objects.size();
-    addCube(pos, orientation, scale, colour, 85.0f);
+    addPlaceholderObject();
 
-    game_objects[n]->add_light(0.1, 0.8, 1.0, 1.0, 0.09, 0.032);
+    game_objects[n]->add_light(ambient, diffuse, specular, constant, linear, quadratic);
     game_objects[n]->name = "Object_" + std::to_string(n);
 
     num_lights++;

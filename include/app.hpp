@@ -15,12 +15,12 @@
 #include <glfwwindowmanager.hpp>
 #include <hollow_cylinder.hpp>
 #include <math.hpp>
+#include <renderer.hpp>
 #include <scenesaver.hpp>
 #include <shader.hpp>
 #include <skybox.hpp>
 #include <sphere.hpp>
 #include <texture_utility.hpp>
-#include <renderer.hpp>
 
 class App {
 public:
@@ -111,7 +111,8 @@ private:
     void addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
                  float shininess);
     void addPlaceholderObject();
-    void addPointLight(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour);
+    void addPointLight(float ambient, float diffuse, float specular, float constant, float linear,
+                       float quadratic);
 
     // Pseudo updating functions
     void processMouseMovement(float mouse_xpos, float mouse_ypos);

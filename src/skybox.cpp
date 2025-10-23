@@ -3,11 +3,12 @@
 namespace Skybox {
 unsigned int VBO;
 unsigned int VAO;
-float brightness = 0.7f;
+float brightness = 0.65f;
 
 void draw(Shader& shader, unsigned int texture_id) {
     glBindVertexArray(Skybox::VAO);
     shader.use();
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
 
     shader.setFloat("brightness", Skybox::brightness);

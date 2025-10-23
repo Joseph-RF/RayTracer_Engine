@@ -43,7 +43,7 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
 
 void main() {
     // Remember to NORMALISE vectors we'll be doing maths with
-    vec3 norm = normalize(normal);
+    vec3 norm     = normalize(normal);
     vec3 view_dir = normalize(viewer_pos - frag_pos);
 
     vec3 colour_output = vec3(0.0);
@@ -52,11 +52,11 @@ void main() {
     // colour_output += calculateDirLight(dir_light, norm, view_dir);
 
     // 2. Point lights
-    for(int i = 0; i < point_lights_number; ++i) {
+    for (int i = 0; i < point_lights_number; ++i) {
         colour_output += calculatePointLight(point_lights[i], norm, frag_pos, view_dir);
     }
 
-    FragColor = vec4(colour_output, 1.0f);// Output must be vec4
+    FragColor = vec4(colour_output, 1.0f); // Output must be vec4
 };
 
 vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir) {
@@ -73,7 +73,7 @@ vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir) {
     // Diffuse Light
     // -------------------------------------
     float diffuse_factor = max(dot(light_direction, norm), 0.0);
-    vec3 diffuse = diffuse_factor * light.colour * light.diffuse * colour;
+    vec3 diffuse         = diffuse_factor * light.colour * light.diffuse * colour;
 
     // Specular Light
     // -------------------------------------
@@ -84,7 +84,7 @@ vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir) {
     // The higher it is, the more concentrated, the lower it is, the more spread out
     // NOTE: material here is the global variable material found at this fragment
     float specular_factor = pow(max(dot(norm, halfway_dir), 0.0), shininess);
-    vec3 specular = specular_factor * light.colour * light.specular * colour;
+    vec3 specular         = specular_factor * light.colour * light.specular * colour;
 
     return ambient + diffuse + specular;
 };
@@ -97,10 +97,9 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
 
     // Attenuation
     // -------------------------------------
-    float dist = length(fragment_pos - light.position);
-    float attenuation = light.constant + light.linear * dist
-                        + light.quadratic * dist * dist;
-    attenuation = 1.0 / attenuation;
+    float dist        = length(fragment_pos - light.position);
+    float attenuation = light.constant + light.linear * dist + light.quadratic * dist * dist;
+    attenuation       = 1.0 / attenuation;
 
     // Ambient
     // -------------------------------------
@@ -109,7 +108,7 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     // Diffuse
     // -------------------------------------
     float diffuse_factor = max(dot(light_direction, norm), 0.0);
-    vec3 diffuse = diffuse_factor * light.diffuse * light.colour * colour;
+    vec3 diffuse         = diffuse_factor * light.diffuse * light.colour * colour;
 
     // Specular
     // -------------------------------------
@@ -121,9 +120,9 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     // NOTE: material here is the global variable material found at this fragment
     float specular_factor = 0.0;
 
-    // Below check prevents a specular components on fragments facing away from 
+    // Below check prevents a specular components on fragments facing away from
     // light source
-    if(dot(light_direction, norm) > 0.0) {
+    if (dot(light_direction, norm) > 0.0) {
         specular_factor = pow(max(dot(norm, halfway_dir), 0.0), shininess);
     }
 

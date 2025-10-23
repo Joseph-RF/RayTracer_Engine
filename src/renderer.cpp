@@ -2,10 +2,22 @@
 
 Renderer::Renderer(int window_width, int window_height, const unsigned int max_lights)
     : window_width(window_width)
-    , window_height(window_height), max_lights(max_lights) {
+    , window_height(window_height)
+    , max_lights(max_lights) {
     // Initialise other variables
     num_lights = 0;
     subsamples = 4;
+
+    matrices_ubo     = 0;
+    multisample_fbo  = 0;
+    multisample_rbo  = 0;
+    intermediate_fbo = 0;
+
+    screen_vbo = 0;
+    screen_vao = 0;
+
+    multisample_texture = 0;
+    screen_texture      = 0;
 }
 
 Renderer::~Renderer() {
@@ -15,11 +27,9 @@ Renderer::~Renderer() {
 
 void Renderer::init() {
     initShaders();
-    initFramebuffer();
+    initFramebuffers();
     initSkyboxes();
     initScreenQuad();
-
-    configUniformBufferObjects();
 
     // Set OpenGL flags
     glEnable(GL_DEPTH_TEST);
@@ -29,37 +39,30 @@ void Renderer::init() {
 }
 
 void Renderer::initShaders() {
-    shader_lib.create("blinn_phong", RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "fshader.glsl",
-                      "");
-    shader_lib.create("outline", RESOURCES_PATH "outline_vshader.glsl",
-                      RESOURCES_PATH "outline_fshader.glsl", "");
-    shader_lib.create("lights", RESOURCES_PATH "vshader.glsl", RESOURCES_PATH "light_fshader.glsl",
-                      "");
-    shader_lib.create("skybox", RESOURCES_PATH "skybox_vshader.glsl",
-                      RESOURCES_PATH "skybox_fshader.glsl", "");
-    shader_lib.create("normals", RESOURCES_PATH "normals_vshader.glsl",
-                      RESOURCES_PATH "normals_fshader.glsl", RESOURCES_PATH "normals_gshader.glsl");
-    shader_lib.create("screen", RESOURCES_PATH "screen_vshader.glsl",
-                      RESOURCES_PATH "screen_fshader.glsl", "");
+    shader_lib.create("blinn_phong", SHADERS_PATH "vshader.glsl", SHADERS_PATH "fshader.glsl", "");
+    shader_lib.create("outline", SHADERS_PATH "outline_vshader.glsl",
+                      SHADERS_PATH "outline_fshader.glsl", "");
+    shader_lib.create("lights", SHADERS_PATH "vshader.glsl", SHADERS_PATH "light_fshader.glsl", "");
+    shader_lib.create("skybox", SHADERS_PATH "skybox_vshader.glsl",
+                      SHADERS_PATH "skybox_fshader.glsl", "");
+    shader_lib.create("normals", SHADERS_PATH "normals_vshader.glsl",
+                      SHADERS_PATH "normals_fshader.glsl", SHADERS_PATH "normals_gshader.glsl");
+    shader_lib.create("screen", SHADERS_PATH "screen_vshader.glsl",
+                      SHADERS_PATH "screen_fshader.glsl", "");
 }
 
 void Renderer::initSkyboxes() {
     Skybox::init();
-    std::vector<std::string> skybox_faces = {RESOURCES_PATH "textures/brightsky/right.jpg",
-                                             RESOURCES_PATH "textures/brightsky/left.jpg",
-                                             RESOURCES_PATH "textures/brightsky/top.jpg",
-                                             RESOURCES_PATH "textures/brightsky/bottom.jpg",
-                                             RESOURCES_PATH "textures/brightsky/front.jpg",
-                                             RESOURCES_PATH "textures/brightsky/back.jpg"};
+    std::vector<std::string> skybox_faces = {
+        TEXTURES_PATH "brightsky/right.jpg", TEXTURES_PATH "brightsky/left.jpg",
+        TEXTURES_PATH "brightsky/top.jpg",   TEXTURES_PATH "brightsky/bottom.jpg",
+        TEXTURES_PATH "brightsky/front.jpg", TEXTURES_PATH "brightsky/back.jpg"};
 
     unsigned int brightsky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
 
-    skybox_faces = {RESOURCES_PATH "textures/starrysky/right.jpg",
-                    RESOURCES_PATH "textures/starrysky/left.jpg",
-                    RESOURCES_PATH "textures/starrysky/top.jpg",
-                    RESOURCES_PATH "textures/starrysky/bottom.jpg",
-                    RESOURCES_PATH "textures/starrysky/front.jpg",
-                    RESOURCES_PATH "textures/starrysky/back.jpg"};
+    skybox_faces = {TEXTURES_PATH "starrysky/right.jpg", TEXTURES_PATH "starrysky/left.jpg",
+                    TEXTURES_PATH "starrysky/top.jpg",   TEXTURES_PATH "starrysky/bottom.jpg",
+                    TEXTURES_PATH "starrysky/front.jpg", TEXTURES_PATH "starrysky/back.jpg"};
 
     unsigned int starrysky_texture = TextureUtility::loadCubeMapTexture(skybox_faces);
 
@@ -68,7 +71,7 @@ void Renderer::initSkyboxes() {
     active_skybox_texture_name      = "brightsky";
 }
 
-void Renderer::initFramebuffer() {
+void Renderer::initFramebuffers() {
     glGenFramebuffers(1, &multisample_fbo);
     glGenTextures(1, &multisample_texture);
     glGenRenderbuffers(1, &multisample_rbo);
@@ -91,8 +94,9 @@ void Renderer::initFramebuffer() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
                               multisample_rbo);
 
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "ERROR::FRAMEBUFFER:: Multisample Framebuffer is not complete!" << std::endl;
+    }
 
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -111,17 +115,17 @@ void Renderer::initFramebuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, intermediate_fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
 
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "ERROR::FRAMEBUFFER:: Intermediate Framebuffer is not complete!" << std::endl;
+    }
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::initScreenQuad() {
-    float vertices[] = {-1.0f, 1.0f,  0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-                        1.0f,  -1.0f, 1.0f, 0.0f, -1.0f, 1.0f,  0.0f, 1.0f,
-                        1.0f,  -1.0f, 1.0f, 0.0f, 1.0f,  1.0f,  1.0f, 1.0f};
+    float vertices[] = {-1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+                        -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
 
     glGenBuffers(1, &screen_vbo);
     glGenVertexArrays(1, &screen_vao);
@@ -136,14 +140,13 @@ void Renderer::initScreenQuad() {
     glEnableVertexAttribArray(0);
 
     // Vertex texture coords
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                            (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 }
 
-void Renderer::configUniformBufferObjects() {
+void Renderer::setUniformBufferObjects() {
     // Create the UBO for view and projection matrices
     glGenBuffers(1, &matrices_ubo);
 
@@ -166,6 +169,18 @@ void Renderer::configUniformBufferObjects() {
 void Renderer::setLightUniforms(Shader& shader, std::vector<std::shared_ptr<GameObject>>& objects) {
     shader.use();
     unsigned int counter = 0;
+
+    // Empty the shader of the point lights
+    for (unsigned int i = 0; i < max_lights; ++i) {
+        shader.setVec3("point_lights[" + std::to_string(counter) + "].position", glm::vec3(0.0));
+        shader.setVec3("point_lights[" + std::to_string(counter) + "].colour", glm::vec3(0.0));
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].ambient", 0.0);
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].diffuse", 0.0);
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].specular", 0.0);
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].constant", 0.0);
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].linear", 0.0);
+        shader.setFloat("point_lights[" + std::to_string(counter) + "].quadratic", 0.0);
+    }
 
     for (unsigned int i = 0; i < objects.size(); ++i) {
 
@@ -197,12 +212,12 @@ void Renderer::setLightUniforms(Shader& shader, std::vector<std::shared_ptr<Game
 }
 
 void Renderer::processScreenResize(int new_window_width, int new_window_height) {
-    window_width = new_window_width;
+    window_width  = new_window_width;
     window_height = new_window_height;
 
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multisample_texture);
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, subsamples, GL_RGB, window_width, window_height,
-                            GL_TRUE);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, subsamples, GL_RGB, window_width,
+                            window_height, GL_TRUE);
     glBindRenderbuffer(GL_RENDERBUFFER, multisample_rbo);
     glRenderbufferStorageMultisample(GL_RENDERBUFFER, subsamples, GL_DEPTH24_STENCIL8, window_width,
                                      window_height);
@@ -211,18 +226,20 @@ void Renderer::processScreenResize(int new_window_width, int new_window_height) 
 
     // Now for the intermediate framebuffer and the screen quad texture
     glBindTexture(GL_TEXTURE_2D, screen_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window_width, window_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window_width, window_height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Renderer::renderPrep(Camera* camera) {
+void Renderer::renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera) {
+
     // Render to multisample framebuffer to write to multisample texture
     glBindFramebuffer(GL_FRAMEBUFFER, multisample_fbo);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    configUniformBufferObjects();
+    setUniformBufferObjects();
     // Consider throwing the below into the function above
     glm::mat4 view       = camera->lookAt();
     glm::mat4 projection = glm::perspective(
@@ -259,10 +276,7 @@ void Renderer::renderScene(std::vector<std::shared_ptr<GameObject>>& objects, Ca
     // Skybox will stay centred around the camera
     shader_lib.get("skybox").setMat("view", glm::mat4(glm::mat3(view)));
     shader_lib.get("skybox").setMat("projection", projection);
-
     Skybox::draw(shader_lib.get("skybox"), skybox_texture_map[active_skybox_texture_name]);
-
-    // Draw objects that don't need to be outlined first first
 
     for (int i = 0; i < objects.size(); ++i) {
         // Draw lights with one shader, objects in another
@@ -401,7 +415,7 @@ void Renderer::renderGizmos(std::unordered_map<std::string, std::shared_ptr<Gizm
     glDisable(GL_DEPTH_TEST);
 
     // Want the centre gizmo to always be visible so draw it last
-    //centre_gizmo->draw(shader_lib.get("lights"));
+    // centre_gizmo->draw(shader_lib.get("lights"));
 
     glEnable(GL_DEPTH_TEST);
 }
@@ -419,7 +433,6 @@ void Renderer::renderScreen() {
     glBindVertexArray(screen_vao);
     shader_lib.get("screen").use();
     shader_lib.get("screen").setInt("screenTexture", 0);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, screen_texture);
     glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 6);

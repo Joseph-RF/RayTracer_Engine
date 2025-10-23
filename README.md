@@ -91,7 +91,9 @@ This section is to list bugs or limitations of the project
 * No shadows, light passes through objects.
 * Slow performance
 * Gizmo's are bouncy
-* Specular component doesn't work correctly. Compare how specular component behaves in blue cube compared to green cube
+* Is there a more efficient way of passing the light properties to the shader
+* Is there a more efficient way of clearing the light array such that deleted light's data is removed
+* Need to make a consistent connection between shadow_width and shadow_height
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
