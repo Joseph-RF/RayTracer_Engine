@@ -9,6 +9,8 @@
 
 class GameObject {
 public:
+    virtual ~GameObject() = default;
+
     glm::vec3 pos;
     glm::vec3 orientation;
     glm::vec3 scale;
@@ -28,6 +30,4 @@ public:
                            float linear, float quadratic) = 0;
 
     virtual std::string dataToString() = 0;
-
-private:
 };

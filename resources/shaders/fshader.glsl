@@ -33,13 +33,27 @@ uniform PointLight point_lights[POINT_LIGHTS_CAPACITY];
 
 uniform vec3 viewer_pos;
 
+// SHADOWS
+// -------
+uniform samplerCube[POINT_LIGHTS_CAPACITY] depth_maps;
+uniform float far_plane;
+uniform bool use_pcf;
+vec3 sample_offset_directions[20] = vec3[] (
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
+int samples = 20;
+
 in vec3 normal;
 in vec3 frag_pos;
 
 out vec4 FragColor; // Fragment shader only requires a single output variable
 
 vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir);
-vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 view_dir);
+vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 view_dir, int point_light_index);
 
 void main() {
     // Remember to NORMALISE vectors we'll be doing maths with
@@ -53,7 +67,7 @@ void main() {
 
     // 2. Point lights
     for (int i = 0; i < point_lights_number; ++i) {
-        colour_output += calculatePointLight(point_lights[i], norm, frag_pos, view_dir);
+        colour_output += calculatePointLight(point_lights[i], norm, frag_pos, view_dir, i);
     }
 
     FragColor = vec4(colour_output, 1.0f); // Output must be vec4
@@ -89,7 +103,7 @@ vec3 calculateDirLight(DirLight light, vec3 norm, vec3 view_dir) {
     return ambient + diffuse + specular;
 };
 
-vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 view_dir) {
+vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 view_dir, int point_light_index) {
 
     // Normalise vectors we're going to use
     // Want to direction of light to be from fragment TO light
@@ -132,6 +146,39 @@ vec3 calculatePointLight(PointLight light, vec3 norm, vec3 fragment_pos, vec3 vi
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
+
+    // SHADOWS
+    // ---------
+    vec3 frag_to_light = fragment_pos - light.position;
+    float current_depth = length(frag_to_light); // Current linear depth as the length between the fragment and light position
+    float closest_depth;
+    float shadow;
+    float bias;
+
+    if (use_pcf) {
+        bias = 0.15;
+        float view_distance = length(viewer_pos - fragment_pos);
+        float disk_radius = 0.05;
+
+        for(int i = 0; i < samples; ++i) {
+            closest_depth = texture(depth_maps[point_light_index], frag_to_light + sample_offset_directions[i] * disk_radius).r;
+            closest_depth *= far_plane;   // undo mapping [0;1]
+            if(current_depth - bias > closest_depth) {
+                shadow += 1.0;
+            }
+        }
+        shadow /= float(samples);
+    } else {
+        bias = 0.05;
+        closest_depth = texture(depth_maps[point_light_index], frag_to_light).r;
+        // Transform from range between [0,1]. Re-transform back to original value
+        closest_depth *= far_plane;
+        // test for shadows
+        shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
+    }
+
+    diffuse *= (1.0 - shadow);
+    specular *= (1.0 - shadow);
 
     vec3 total = vec3(0.0);
     total += ambient;

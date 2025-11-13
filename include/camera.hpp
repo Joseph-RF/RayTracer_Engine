@@ -13,7 +13,7 @@ public:
     void processKeyboard(Camera_Movement direction, float delta_time);
     void processMouse(double x_offset, double y_offset);
     void processScroll(double x_offset, double y_offset);
-    glm::mat4 lookAt();
+    [[nodiscard]] glm::mat4 lookAt() const;
 
     // Camera values
     float speed;

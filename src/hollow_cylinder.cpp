@@ -14,7 +14,6 @@ HollowCylinder::HollowCylinder() {
     this->colour      = glm::vec3(1.0, 1.0, 1.0);
     this->shininess   = 0.0f;
 
-    update_bounding_box();
     this->name    = "NO_NAME";
     this->light   = nullptr;
     this->visible = true;
@@ -28,7 +27,6 @@ HollowCylinder::HollowCylinder(glm::vec3 pos, glm::vec3 orientation, glm::vec3 s
     this->colour      = colour;
     this->shininess   = shininess;
 
-    update_bounding_box();
     this->name    = "NO_NAME";
     this->light   = nullptr;
     this->visible = true;
@@ -69,7 +67,7 @@ void HollowCylinder::update_bounding_box() {
                                        glm::vec3(-0.5f * radius, 0.5f * radius, 0.5f),
                                        glm::vec3(0.5f * radius, 0.5f * radius, 0.5f)};
 
-    for (unsigned int i = 0; i < vertices.size(); ++i) {
+    for (glm::vec3& vertex : vertices) {
         glm::mat4 model(1.0f);
         model = glm::translate(model, pos);
         model = glm::rotate(model, orientation.x, glm::vec3(1.0, 0.0, 0.0));
@@ -77,7 +75,7 @@ void HollowCylinder::update_bounding_box() {
         model = glm::rotate(model, orientation.z, glm::vec3(0.0, 0.0, 1.0));
         model = glm::scale(model, scale);
 
-        vertices[i] = glm::vec3(model * glm::vec4(vertices[i], 1.0));
+        vertex = glm::vec3(model * glm::vec4(vertex, 1.0));
     }
 
     // Default bbox given the cube's vertices
@@ -87,6 +85,7 @@ void HollowCylinder::update_bounding_box() {
                 vertices[0].z);
 
     for (unsigned int i = 1; i < vertices.size(); ++i) {
+        // Start loop at 1 since vertices set to vertices[0]
         if (vertices[i].x < bbox.xmin) {
             bbox.xmin = vertices[i].x;
         }
@@ -114,7 +113,7 @@ void HollowCylinder::add_light(float ambient, float diffuse, float specular, flo
 }
 
 std::string HollowCylinder::dataToString() {
-    std::string str = "";
+    std::string str;
 
     // Game object type
     str += "HollowCylinder ";
@@ -174,7 +173,7 @@ std::vector<float> HollowCylinder::unitCircleVertices() {
     std::vector<float> vertices;
 
     for (int i = 0; i < HollowCylinder::num_sectors; ++i) {
-        float theta = i * (2 * 3.141592) / HollowCylinder::num_sectors;
+        float theta = i * (2.f * 3.141592f) / HollowCylinder::num_sectors;
         vertices.push_back(std::cos(theta)); // x
         vertices.push_back(std::sin(theta)); // y
         vertices.push_back(0.0f);            // z

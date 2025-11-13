@@ -15,7 +15,6 @@ Sphere::Sphere() {
     this->colour      = glm::vec3(1.0, 1.0, 1.0);
     this->shininess   = 32.0f;
 
-    update_bounding_box();
     this->name    = "NO_NAME";
     this->light   = nullptr;
     this->visible = true;
@@ -29,7 +28,6 @@ Sphere::Sphere(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 
     this->colour      = colour;
     this->shininess   = shininess;
 
-    update_bounding_box();
     this->name    = "NO_NAME";
     this->light   = nullptr;
     this->visible = true;
@@ -59,12 +57,13 @@ void Sphere::draw(Shader& shader) {
 }
 
 void Sphere::update_bounding_box() {
-    std::vector<glm::vec3> vert = {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
-                                   glm::vec3(-1.0f, -1.0f, 1.0f),  glm::vec3(1.0f, -1.0f, 1.0f),
-                                   glm::vec3(-1.0f, 1.0f, -1.0f),  glm::vec3(1.0f, 1.0f, -1.0f),
-                                   glm::vec3(-1.0f, 1.0f, 1.0f),   glm::vec3(1.0f, 1.0f, 1.0f)};
+    std::vector<glm::vec3> vertices = {
+        glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
+        glm::vec3(-1.0f, -1.0f, 1.0f),  glm::vec3(1.0f, -1.0f, 1.0f),
+        glm::vec3(-1.0f, 1.0f, -1.0f),  glm::vec3(1.0f, 1.0f, -1.0f),
+        glm::vec3(-1.0f, 1.0f, 1.0f),   glm::vec3(1.0f, 1.0f, 1.0f)};
 
-    for (unsigned int i = 0; i < vert.size(); ++i) {
+    for (glm::vec3& vertex : vertices) {
         glm::mat4 model(1.0f);
         model = glm::translate(model, pos);
         model = glm::rotate(model, orientation.x, glm::vec3(1.0, 0.0, 0.0));
@@ -72,32 +71,33 @@ void Sphere::update_bounding_box() {
         model = glm::rotate(model, orientation.z, glm::vec3(0.0, 0.0, 1.0));
         model = glm::scale(model, scale);
 
-        vert[i] = glm::vec3(model * glm::vec4(vert[i], 1.0));
+        vertex = glm::vec3(model * glm::vec4(vertex, 1.0));
     }
 
     // Default bbox given the cube's vertices
     // Adjust depending on the transformations
     // NOTE: Assume that it won't change later
-    bbox = AABB(vert[0].x, vert[0].x, vert[0].y, vert[0].y, vert[0].z, vert[0].z);
+    bbox = AABB(vertices[0].x, vertices[0].x, vertices[0].y, vertices[0].y, vertices[0].z,
+                vertices[0].z);
 
-    for (unsigned int i = 1; i < vert.size(); ++i) {
-        if (vert[i].x < bbox.xmin) {
-            bbox.xmin = vert[i].x;
+    for (unsigned int i = 1; i < vertices.size(); ++i) {
+        if (vertices[i].x < bbox.xmin) {
+            bbox.xmin = vertices[i].x;
         }
-        if (vert[i].x > bbox.xmax) {
-            bbox.xmax = vert[i].x;
+        if (vertices[i].x > bbox.xmax) {
+            bbox.xmax = vertices[i].x;
         }
-        if (vert[i].y < bbox.ymin) {
-            bbox.ymin = vert[i].y;
+        if (vertices[i].y < bbox.ymin) {
+            bbox.ymin = vertices[i].y;
         }
-        if (vert[i].y > bbox.ymax) {
-            bbox.ymax = vert[i].y;
+        if (vertices[i].y > bbox.ymax) {
+            bbox.ymax = vertices[i].y;
         }
-        if (vert[i].z < bbox.zmin) {
-            bbox.zmin = vert[i].z;
+        if (vertices[i].z < bbox.zmin) {
+            bbox.zmin = vertices[i].z;
         }
-        if (vert[i].z > bbox.zmax) {
-            bbox.zmax = vert[i].z;
+        if (vertices[i].z > bbox.zmax) {
+            bbox.zmax = vertices[i].z;
         }
     }
 }
@@ -166,12 +166,12 @@ std::vector<float> Sphere::generateVertexPositions() {
     std::vector<float> vertex_positions;
 
     for (unsigned int i = 0; i < Sphere::stacks; ++i) {
-        float theta1 = i * 3.141592 / Sphere::stacks;
-        float theta2 = (i + 1) * 3.141592 / Sphere::stacks;
+        float theta1 = i * 3.141592f / Sphere::stacks;
+        float theta2 = (i + 1) * 3.141592f / Sphere::stacks;
 
         for (unsigned int j = 0; j < Sphere::slices; ++j) {
-            float phi1 = j * 2 * 3.141592 / Sphere::slices;
-            float phi2 = (j + 1) * 2 * 3.141592 / Sphere::slices;
+            float phi1 = j * 2 * 3.141592f / Sphere::slices;
+            float phi2 = (j + 1) * 2 * 3.141592f / Sphere::slices;
 
             glm::vec3 vertex1(std::sin(theta1) * std::cos(phi1), std::cos(theta1),
                               std::sin(theta1) * std::sin(phi1));

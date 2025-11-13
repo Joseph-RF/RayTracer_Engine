@@ -1,24 +1,22 @@
 #pragma once
 
-#include <functional>
-
 #include <arrow.hpp>
 #include <cube.hpp>
 #include <hollow_cylinder.hpp>
 #include <math.hpp>
 
-enum class GizmoType { MOVE, ROTATE };
+enum class GizmoType { MOVE, ROTATE, SCALE };
 
 class Gizmo {
 public:
-    virtual void toggleActivity()                                                    = 0;
-    virtual bool getActivity()                                                       = 0;
-    virtual void draw(Shader& shader)                                                = 0;
-    virtual void updatePosAndOrientation(std::shared_ptr<GameObject> target)         = 0;
-    virtual void updateBoundingBox()                                                 = 0;
-    virtual void transformation_function(glm::vec3& ray_origin, glm::vec3& ray_direction,
-                                         std::shared_ptr<GameObject> target,
-                                         glm::vec3& previous_pos, bool& using_gizmo) = 0;
+    virtual void setActivity(bool activity)                        = 0;
+    virtual bool getActivity()                                     = 0;
+    virtual void draw(Shader& shader)                              = 0;
+    virtual void updatePosAndOrientation(const GameObject& target) = 0;
+    virtual void updateBoundingBox()                               = 0;
+    virtual void transformationFunction(glm::vec3& ray_origin, glm::vec3& ray_direction,
+                                        GameObject& target, glm::vec3& previous_pos,
+                                        bool& using_gizmo)         = 0;
 
     std::unique_ptr<GameObject> body;
 
@@ -31,42 +29,52 @@ protected:
 
 class AxisMoveGizmo : public Gizmo {
 public:
-    AxisMoveGizmo(std::string type);
+    AxisMoveGizmo(const std::string& type);
 
-    void toggleActivity() override;
+    void setActivity(bool activity) override;
     bool getActivity() override;
     void draw(Shader& shader) override;
-    void updatePosAndOrientation(std::shared_ptr<GameObject> target) override;
+    void updatePosAndOrientation(const GameObject& target) override;
     void updateBoundingBox() override;
-    void transformation_function(glm::vec3& ray_origin, glm::vec3& ray_direction,
-                                 std::shared_ptr<GameObject> target, glm::vec3& previous_pos,
-                                 bool& using_gizmo) override;
+    void transformationFunction(glm::vec3& ray_origin, glm::vec3& ray_direction, GameObject& target,
+                                glm::vec3& previous_pos, bool& using_gizmo) override;
 };
 
 class PlaneMoveGizmo : public Gizmo {
 public:
-    PlaneMoveGizmo(std::string type);
+    PlaneMoveGizmo(const std::string& type);
 
-    void toggleActivity() override;
+    void setActivity(bool activity) override;
     bool getActivity() override;
     void draw(Shader& shader) override;
-    void updatePosAndOrientation(std::shared_ptr<GameObject> target) override;
+    void updatePosAndOrientation(const GameObject& target) override;
     void updateBoundingBox() override;
-    void transformation_function(glm::vec3& ray_origin, glm::vec3& ray_direction,
-                                 std::shared_ptr<GameObject> target, glm::vec3& previous_pos,
-                                 bool& using_gizmo) override;
+    void transformationFunction(glm::vec3& ray_origin, glm::vec3& ray_direction, GameObject& target,
+                                glm::vec3& previous_pos, bool& using_gizmo) override;
 };
 
 class RotateGizmo : public Gizmo {
 public:
-    RotateGizmo(std::string type);
+    RotateGizmo(const std::string& type);
 
-    void toggleActivity() override;
+    void setActivity(bool activity) override;
     bool getActivity() override;
     void draw(Shader& shader) override;
-    void updatePosAndOrientation(std::shared_ptr<GameObject> target) override;
+    void updatePosAndOrientation(const GameObject& target) override;
     void updateBoundingBox() override;
-    void transformation_function(glm::vec3& ray_origin, glm::vec3& ray_direction,
-                                 std::shared_ptr<GameObject> target, glm::vec3& previous_pos,
-                                 bool& using_gizmo) override;
+    void transformationFunction(glm::vec3& ray_origin, glm::vec3& ray_direction, GameObject& target,
+                                glm::vec3& previous_pos, bool& using_gizmo) override;
+};
+
+class ScaleGizmo : public Gizmo {
+public:
+    ScaleGizmo(const std::string& type);
+
+    void setActivity(bool activity) override;
+    bool getActivity() override;
+    void draw(Shader& shader) override;
+    void updatePosAndOrientation(const GameObject& target) override;
+    void updateBoundingBox() override;
+    void transformationFunction(glm::vec3& ray_origin, glm::vec3& ray_direction, GameObject& target,
+                                glm::vec3& previous_pos, bool& using_gizmo) override;
 };

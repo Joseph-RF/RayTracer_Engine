@@ -1,7 +1,7 @@
 #include <scenesaver.hpp>
 
 namespace SceneSaver {
-void saveScene(App& app) {
+void saveScene(const App& app) {
 
     std::ofstream outfile(RESOURCES_PATH "/save_data/test.txt");
 
@@ -26,7 +26,6 @@ void loadScene(App& app) {
 
     std::ifstream infile(RESOURCES_PATH "save_data/test.txt");
     std::string str;
-    Light temp_light(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
     if (infile.is_open()) {
         while (std::getline(infile, str)) {

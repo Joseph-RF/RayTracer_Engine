@@ -7,6 +7,16 @@
 #include <skybox.hpp>
 #include <texture_utility.hpp>
 
+struct RenderContext {
+    std::vector<std::shared_ptr<GameObject>>& objects;
+    const std::shared_ptr<GameObject>& mouseover_object;
+    const std::shared_ptr<GameObject>& selected_object;
+    Camera* camera;
+    std::unordered_map<std::string, std::shared_ptr<Gizmo>>& gizmos;
+    std::shared_ptr<Gizmo> mouseover_gizmo;
+    GizmoType active_gizmo_type;
+};
+
 class Renderer {
 public:
     Renderer(int window_width, int window_height, const unsigned int max_lights);
@@ -14,15 +24,7 @@ public:
 
     void init();
 
-    void renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
-    void renderScene(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
-    void renderOutlinedObjects(std::shared_ptr<GameObject> selected_object,
-                               std::shared_ptr<GameObject> mouseover_object);
-    void renderBbox(std::shared_ptr<GameObject> object, Cube& bbox_wireframe);
-    void renderNormals(std::vector<std::shared_ptr<GameObject>>& objects);
-    void renderGizmos(std::unordered_map<std::string, std::shared_ptr<Gizmo>>& gizmos,
-                      std::shared_ptr<Gizmo> mouseover_gizmo, GizmoType active_gizmo_type);
-    void renderScreen();
+    void render(const RenderContext& render_context);
 
     void processScreenResize(int new_window_width, int new_window_height);
 
@@ -31,19 +33,38 @@ public:
 
     void setNumLights(unsigned int num_lights);
 
+    bool draw_normals;
+    bool use_pcf;
+
 private:
     void initShaders();
     void initSkyboxes();
     void initFramebuffers();
     void initScreenQuad();
 
-    void setUniformBufferObjects();
-    void setLightUniforms(Shader& shader, std::vector<std::shared_ptr<GameObject>>& objects);
+    void renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
+    void renderScene(const RenderContext& render_context);
+    void renderOutlinedObject(GameObject& selected_object);
+    void renderBbox(const GameObject& object);
+    void renderNormals(std::vector<std::shared_ptr<GameObject>>& objects);
+    void renderGizmos(std::unordered_map<std::string, std::shared_ptr<Gizmo>>& gizmos,
+                      const std::shared_ptr<Gizmo>& mouseover_gizmo, GizmoType active_gizmo_type);
+    void renderScreen();
 
+    void setUniformBufferObjects();
+    void setLightUniforms(Shader& shader, std::vector<std::shared_ptr<GameObject>>& objects) const;
+
+    void createDepthMap(std::vector<std::shared_ptr<GameObject>>& objects);
 
     // Window properties
     int window_width;
     int window_height;
+
+    // Shadow properties
+    unsigned int shadow_width;
+    unsigned int shadow_height;
+    unsigned int depth_map_fbo;
+    int depth_map_texture_offset; // Offset from GL_TEXTURE0 for depth map textures
 
     // Shaders
     ShaderLibrary shader_lib;
@@ -72,4 +93,7 @@ private:
     // Texture image file names for skybox faces
     std::string active_skybox_texture_name;
     std::unordered_map<std::string, unsigned int> skybox_texture_map;
+
+    // Wireframe bounding box body
+    Cube bbox_wireframe;
 };

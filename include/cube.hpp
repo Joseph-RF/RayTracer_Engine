@@ -29,4 +29,4 @@ private:
     static unsigned int VAO;
 };
 
-std::shared_ptr<Cube> createCubeFromData(std::string& data);
+std::shared_ptr<Cube> createCubeFromData(const std::string& data);

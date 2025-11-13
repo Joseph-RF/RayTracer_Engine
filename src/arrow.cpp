@@ -1,4 +1,3 @@
-#include "arrow.hpp"
 #include <arrow.hpp>
 
 unsigned int Arrow::VBO;
@@ -18,7 +17,6 @@ Arrow::Arrow() {
     this->colour      = glm::vec3(1.0, 1.0, 1.0);
     this->shininess   = 0.0f;
 
-    update_bounding_box();
     this->name    = "NO_NAME";
     this->light   = nullptr;
     this->visible = true;
@@ -32,7 +30,6 @@ Arrow::Arrow(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 co
     this->colour      = colour;
     this->shininess   = shininess;
 
-    update_bounding_box();
     name          = "NO_NAME";
     light         = nullptr;
     this->visible = true;
@@ -74,7 +71,7 @@ void Arrow::update_bounding_box() {
         glm::vec3(-0.5f * radius, 0.5f * radius, head_height + 0.5f * tail_height),
         glm::vec3(0.5f * radius, 0.5f * radius, head_height + 0.5f * tail_height)};
 
-    for (unsigned int i = 0; i < vertices.size(); ++i) {
+    for (glm::vec3& vertex : vertices) {
         glm::mat4 model(1.0f);
         model = glm::translate(model, pos);
         model = glm::rotate(model, orientation.x, glm::vec3(1.0, 0.0, 0.0));
@@ -82,7 +79,7 @@ void Arrow::update_bounding_box() {
         model = glm::rotate(model, orientation.z, glm::vec3(0.0, 0.0, 1.0));
         model = glm::scale(model, scale);
 
-        vertices[i] = glm::vec3(model * glm::vec4(vertices[i], 1.0));
+        vertex = glm::vec3(model * glm::vec4(vertex, 1.0));
     }
 
     // Default bbox given the cube's vertices
@@ -119,10 +116,8 @@ void Arrow::add_light(float ambient, float diffuse, float specular, float consta
 }
 
 std::string Arrow::dataToString() {
-    std::string str = "";
-
-    // Game object type
-    str += "Arrow ";
+    // Start with the object type
+    std::string str = "Arrow";
 
     // Game object position
     str += (std::to_string(pos.x) + " ");
@@ -179,7 +174,7 @@ std::vector<float> Arrow::unitCircleVertices() {
     std::vector<float> vertices;
 
     for (int i = 0; i < Arrow::num_sectors; ++i) {
-        float theta = i * (2 * 3.141592) / Arrow::num_sectors;
+        float theta = i * (2.f * 3.141592f) / Arrow::num_sectors;
         vertices.push_back(std::cos(theta)); // x
         vertices.push_back(std::sin(theta)); // y
         vertices.push_back(0.0f);            // z
@@ -417,7 +412,7 @@ void Arrow::init() {
     glBindVertexArray(0);
 }
 
-std::shared_ptr<Arrow> createArrowFromData(std::string& data) {
+std::shared_ptr<Arrow> createArrowFromData(const std::string& data) {
     std::stringstream ss(data);
     std::string str;
 
@@ -425,7 +420,6 @@ std::shared_ptr<Arrow> createArrowFromData(std::string& data) {
         std::make_shared<Arrow>(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0),
                                 glm::vec3(1.0, 1.0, 1.0), glm::vec3(1.0, 0.0, 0.0), 85.0f);
 
-    str = "";
     ss >> str; // Get rid of the number
     ss >> str; // Get rid of object class type
 

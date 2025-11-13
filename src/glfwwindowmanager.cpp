@@ -147,8 +147,7 @@ void GLFWWindowManager::keyCallback(GLFWwindow* window, int key, int scancode, i
                                     int mods) {
     GLFWWindowManager* manager = static_cast<GLFWWindowManager*>(glfwGetWindowUserPointer(window));
     if (manager && manager->event_manager) {
-        Key key_pressed = glfwKeyToEnumKey(key);
-        bool pressed    = (action == GLFW_PRESS || action == GLFW_REPEAT);
+        bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
 
         if (pressed && key == GLFW_KEY_ESCAPE) {
             glfwSetWindowShouldClose(window, true);

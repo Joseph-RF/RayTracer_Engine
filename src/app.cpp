@@ -48,8 +48,6 @@ App::App(int window_x, int window_y)
     using_gizmo       = false;
     previous_position = glm::vec3(0.0, 0.0, 0.0);
     active_gizmo_type = GizmoType::MOVE;
-
-    draw_normals = false;
 }
 
 App::~App() {}
@@ -110,26 +108,30 @@ void App::initObjects() {
 
 void App::initGizmos() {
     gizmos["X_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("X");
-    gizmos["X_AXIS_MOVE"]->toggleActivity();
+    gizmos["X_AXIS_MOVE"]->setActivity(true);
 
     gizmos["Y_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("Y");
-    gizmos["Y_AXIS_MOVE"]->toggleActivity();
+    gizmos["Y_AXIS_MOVE"]->setActivity(true);
 
     gizmos["Z_AXIS_MOVE"] = std::make_shared<AxisMoveGizmo>("Z");
-    gizmos["Z_AXIS_MOVE"]->toggleActivity();
+    gizmos["Z_AXIS_MOVE"]->setActivity(true);
 
     gizmos["XY_PLANE_MOVE"] = std::make_shared<PlaneMoveGizmo>("XY");
-    gizmos["XY_PLANE_MOVE"]->toggleActivity();
+    gizmos["XY_PLANE_MOVE"]->setActivity(true);
 
     gizmos["XZ_PLANE_MOVE"] = std::make_shared<PlaneMoveGizmo>("XZ");
-    gizmos["XZ_PLANE_MOVE"]->toggleActivity();
+    gizmos["XZ_PLANE_MOVE"]->setActivity(true);
 
     gizmos["YZ_PLANE_MOVE"] = std::make_shared<PlaneMoveGizmo>("YZ");
-    gizmos["YZ_PLANE_MOVE"]->toggleActivity();
+    gizmos["YZ_PLANE_MOVE"]->setActivity(true);
 
     gizmos["X_AXIS_ROTATE"] = std::make_shared<RotateGizmo>("X");
     gizmos["Y_AXIS_ROTATE"] = std::make_shared<RotateGizmo>("Y");
     gizmos["Z_AXIS_ROTATE"] = std::make_shared<RotateGizmo>("Z");
+
+    gizmos["X_SCALE"] = std::make_shared<ScaleGizmo>("X");
+    gizmos["Y_SCALE"] = std::make_shared<ScaleGizmo>("Y");
+    gizmos["Z_SCALE"] = std::make_shared<ScaleGizmo>("Z");
 
     // Set gizmo properties
     centre_gizmo->colour = glm::vec3(0.8, 0.8, 0.8);
@@ -160,7 +162,7 @@ void App::update() {
 
         // Update the position of the gizmos
         for (auto& it : gizmos) {
-            it.second->updatePosAndOrientation(selected_object);
+            it.second->updatePosAndOrientation(*selected_object);
             it.second->updateBoundingBox();
         }
     }
@@ -247,12 +249,38 @@ void App::runActions() {
             break;
         case Action::TOGGLE_GIZMO:
             if (active_gizmo_type == GizmoType::MOVE) {
+                gizmos["X_AXIS_MOVE"]->setActivity(false);
+                gizmos["Y_AXIS_MOVE"]->setActivity(false);
+                gizmos["Z_AXIS_MOVE"]->setActivity(false);
+                gizmos["XY_PLANE_MOVE"]->setActivity(false);
+                gizmos["XZ_PLANE_MOVE"]->setActivity(false);
+                gizmos["YZ_PLANE_MOVE"]->setActivity(false);
+
                 active_gizmo_type = GizmoType::ROTATE;
+                gizmos["X_AXIS_ROTATE"]->setActivity(true);
+                gizmos["Y_AXIS_ROTATE"]->setActivity(true);
+                gizmos["Z_AXIS_ROTATE"]->setActivity(true);
+            } else if (active_gizmo_type == GizmoType::ROTATE) {
+                gizmos["X_AXIS_ROTATE"]->setActivity(false);
+                gizmos["Y_AXIS_ROTATE"]->setActivity(false);
+                gizmos["Z_AXIS_ROTATE"]->setActivity(false);
+
+                active_gizmo_type = GizmoType::SCALE;
+                gizmos["X_SCALE"]->setActivity(true);
+                gizmos["Y_SCALE"]->setActivity(true);
+                gizmos["Z_SCALE"]->setActivity(true);
             } else {
+                gizmos["X_SCALE"]->setActivity(false);
+                gizmos["Y_SCALE"]->setActivity(false);
+                gizmos["Z_SCALE"]->setActivity(false);
+
                 active_gizmo_type = GizmoType::MOVE;
-            }
-            for (auto& it : gizmos) {
-                it.second->toggleActivity();
+                gizmos["X_AXIS_MOVE"]->setActivity(true);
+                gizmos["Y_AXIS_MOVE"]->setActivity(true);
+                gizmos["Z_AXIS_MOVE"]->setActivity(true);
+                gizmos["XY_PLANE_MOVE"]->setActivity(true);
+                gizmos["XZ_PLANE_MOVE"]->setActivity(true);
+                gizmos["YZ_PLANE_MOVE"]->setActivity(true);
             }
             break;
         case Action::SAVE_SCENE:
@@ -261,52 +289,19 @@ void App::runActions() {
         case Action::LOAD_SCENE:
             SceneSaver::loadScene(*this);
             break;
+        default:
+            std::cout << "Action does not have defined behaviour in App::runActions" << std::endl;
         }
     }
 }
 
 void App::render() {
-    renderer.renderPrep(game_objects, active_camera);
-
-    // After clearing the OpenGL buffer, need to let ImGui know that we are now going
-    // to work on the new frame
+    // Let ImGUI know we're working on a new frame
     window_manager->newImGuiFrame();
 
-    // Disable the objects that need to be outlined for scene rendering
-    if (selected_object) {
-        selected_object->visible = false;
-    }
-    if (mouseover_object) {
-        mouseover_object->visible = false;
-    }
-
     // Render scene
-    renderer.renderScene(game_objects, active_camera);
-
-    // Make objects that need to be outlined visible again
-    if (selected_object) {
-        selected_object->visible = true;
-    }
-    if (mouseover_object) {
-        mouseover_object->visible = true;
-    }
-    renderer.renderOutlinedObjects(selected_object, mouseover_object);
-
-    if (draw_normals) {
-        renderer.renderNormals(game_objects);
-    }
-
-    // Draw wireframe box representing the bounding box around objects that are
-    // selected or mouseover'd
-    if (mouseover_object) {
-        renderer.renderBbox(mouseover_object, bbox_wireframe);
-    }
-    if (selected_object) {
-        renderer.renderBbox(selected_object, bbox_wireframe);
-        renderer.renderGizmos(gizmos, mouseover_gizmo, active_gizmo_type);
-    }
-
-    renderer.renderScreen();
+    renderer.render(RenderContext{game_objects, mouseover_object, selected_object, active_camera,
+                                  gizmos, mouseover_gizmo, active_gizmo_type});
 
     // After drawing OpenGL objects, draw ImGUI
     renderImGUI();
@@ -451,10 +446,10 @@ void App::renderImGUI() {
 
         ImGui::Text("Type of object");
         if (ImGui::BeginCombo("Select type", placeholder_object_type.c_str())) {
-            for (unsigned int i = 0; i < object_type_list.size(); ++i) {
-                bool is_selected = (placeholder_object_type == object_type_list[i]);
-                if (ImGui::Selectable(object_type_list[i].c_str(), is_selected)) {
-                    placeholder_object_type = object_type_list[i];
+            for (const std::string& object_type : object_type_list) {
+                bool is_selected = (placeholder_object_type == object_type);
+                if (ImGui::Selectable(object_type.c_str(), is_selected)) {
+                    placeholder_object_type = object_type;
                 }
             }
             ImGui::EndCombo();
@@ -576,7 +571,9 @@ void App::renderImGUI() {
     ImGui::Separator();
     ImGui::Separator();
     ImGui::Text("Toggle Normal Visualisation");
-    ImGui::Checkbox("Visualise Normals", &draw_normals);
+    ImGui::Checkbox("Visualise Normals", &renderer.draw_normals);
+    ImGui::Text("Toggle use of PCF for point light shadows");
+    ImGui::Checkbox("Use PCF", &renderer.use_pcf);
 
     ImGui::End();
 }
@@ -589,6 +586,8 @@ void App::addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::ve
     game_objects.push_back(std::make_shared<Cube>(pos, orientation, scale, colour, shininess));
 
     game_objects[n]->name = "Object_" + std::to_string(n);
+
+    game_objects[n]->update_bounding_box();
 }
 
 void App::addPlaceholderObject() {
@@ -611,6 +610,8 @@ void App::addPlaceholderObject() {
             placeholder_shininess));
     }
     game_objects[n]->name = "Object_" + std::to_string(n);
+
+    game_objects[n]->update_bounding_box();
 }
 
 void App::addPointLight(float ambient, float diffuse, float specular, float constant, float linear,
@@ -642,8 +643,8 @@ void App::processMouseMovement(float mouse_xpos, float mouse_ypos) {
 
         std::string name = mouseover_gizmo->body->name;
 
-        mouseover_gizmo->transformation_function(active_camera->pos, mouse_ray, selected_object,
-                                                 previous_position, using_gizmo);
+        mouseover_gizmo->transformationFunction(active_camera->pos, mouse_ray, *selected_object,
+                                                previous_position, using_gizmo);
     }
 }
 
@@ -693,17 +694,16 @@ void App::mouseObjectsIntersect(float mouse_x, float mouse_y) {
         return;
     }
 
-    for (unsigned int i = 0; i < game_objects.size(); ++i) {
-        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction,
-                                             game_objects[i]->bbox)) {
-            if (selected_object == game_objects[i] && selected_object) {
+    for (const std::shared_ptr<GameObject>& object : game_objects) {
+        if (Math::rayBoundingBoxIntersection(active_camera->pos, mouse_direction, object->bbox)) {
+            if (selected_object == object && selected_object) {
                 // Ignore this check if the item currently being hovered over is the
                 // selected object. Ensure selected_object is an actual object and not
                 // just NULL
                 continue;
             }
             mouseover        = true;
-            mouseover_object = game_objects[i];
+            mouseover_object = object;
         }
     }
     if (!mouseover) {

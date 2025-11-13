@@ -92,8 +92,7 @@ This section is to list bugs or limitations of the project
 * Slow performance
 * Gizmo's are bouncy
 * Is there a more efficient way of passing the light properties to the shader
-* Is there a more efficient way of clearing the light array such that deleted light's data is removed
-* Need to make a consistent connection between shadow_width and shadow_height
+* Shadows from point lights don't work properly if object is too close to light source
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

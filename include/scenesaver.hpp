@@ -8,7 +8,7 @@
 class App;
 
 namespace SceneSaver {
-void saveScene(App& app);
+void saveScene(const App& app);
 
 void loadScene(App& app);
 } // namespace SceneSaver

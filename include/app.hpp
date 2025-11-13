@@ -4,10 +4,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <iostream>
-#include <map>
-#include <typeinfo>
-
 #include <arrow.hpp>
 #include <camera.hpp>
 #include <cube.hpp>
@@ -17,20 +13,20 @@
 #include <math.hpp>
 #include <renderer.hpp>
 #include <scenesaver.hpp>
-#include <shader.hpp>
 #include <skybox.hpp>
 #include <sphere.hpp>
-#include <texture_utility.hpp>
 
 class App {
 public:
     App(int window_x, int window_y);
+
     ~App();
 
     void run();
 
     std::vector<std::shared_ptr<GameObject>> game_objects;
     unsigned int num_lights;
+
     void resetObjectPointers();
 
 private:
@@ -85,40 +81,45 @@ private:
     // Gizmo function utility
     bool using_gizmo;
     glm::vec3 previous_position;
-    enum GizmoType active_gizmo_type;
-
-    // Cube for bounding box wireframe
-    Cube bbox_wireframe;
-
-    // Draw normals bool
-    bool draw_normals;
+    GizmoType active_gizmo_type;
 
     // Initialising functions
     bool init();
+
     void initObjects();
+
     void initGizmos();
+
     void initScene();
 
     // Updating functions
     void update();
+
     void runActions();
 
     // Rendering functions
     void render();
+
     void renderImGUI();
 
     // Pseudo initialising functions
     void addCube(glm::vec3 pos, glm::vec3 orientation, glm::vec3 scale, glm::vec3 colour,
                  float shininess);
+
     void addPlaceholderObject();
+
     void addPointLight(float ambient, float diffuse, float specular, float constant, float linear,
                        float quadratic);
 
     // Pseudo updating functions
     void processMouseMovement(float mouse_xpos, float mouse_ypos);
+
     void processScreenResize(float new_window_x, float new_window_y);
+
     // Mouse intersection functions
     glm::vec3 mouseRaycast(float mouse_x, float mouse_y);
+
     void mouseObjectsIntersect(float mouse_x, float mouse_y);
+
     void mouseGizmosIntersect(float mouse_x, float mouse_y);
 };

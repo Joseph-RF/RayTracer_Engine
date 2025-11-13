@@ -64,7 +64,7 @@ void Camera::processScroll(double x_offset, double y_offset) {
     }
 }
 
-glm::mat4 Camera::lookAt() {
+glm::mat4 Camera::lookAt() const {
     // Argument 1: Position of the camera. NOTE THAT THIS IS REVERSED ON PURPOSE
     // Argument 2: Direction camera is looking in.
     // Argument 3: Up direction of the camera

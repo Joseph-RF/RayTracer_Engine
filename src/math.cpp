@@ -30,7 +30,7 @@ glm::vec3 Math::closestPointBetweenRays(const glm::vec3& ray1_origin,
 
     if (denom == 0.0) {
         std::cout << "rays are parallel" << std::endl;
-        return glm::vec3(0.0, 0.0, 0.0);
+        return {0.0, 0.0, 0.0};
     }
 
     return ((-dasd + dadb * dbsd) / denom) * ray1_direction + ray1_origin;

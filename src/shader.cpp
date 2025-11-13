@@ -6,7 +6,7 @@ Shader::Shader() {
 
 Shader::Shader(const char* vertex_path, const char* fragment_path, const char* geometry_path) {
 
-    bool using_geometry_shader = (std::string(geometry_path) != "");
+    bool using_geometry_shader = std::string(geometry_path) != "";
 
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertex_code;
@@ -137,7 +137,7 @@ void Shader::setFloat(const std::string& name, float value) const {
     glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
 
-void Shader::setMat(const std::string& name, glm::mat4& mat) const {
+void Shader::setMat(const std::string& name, const glm::mat4& mat) const {
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
 }
 

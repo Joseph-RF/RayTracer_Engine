@@ -30,8 +30,11 @@ public:
 
 private:
     static std::vector<float> unitCircleVertices();
+
     static std::vector<float> generateVertexPositions();
+
     static std::vector<float> generateVertexNormals(const std::vector<float>& vertex_positions);
+
     static std::vector<unsigned int> generateIndices();
 
     static unsigned int VBO;
@@ -41,4 +44,4 @@ private:
     static int num_sectors;
 };
 
-std::shared_ptr<Arrow> createArrowFromData(std::string& data);
+std::shared_ptr<Arrow> createArrowFromData(const std::string& data);
