@@ -52,7 +52,7 @@ void Renderer::init() {
 }
 
 void Renderer::render(const RenderContext& render_context) {
-    renderPrep(render_context.objects, render_context.camera);
+    renderPrep(render_context.camera);
 
     // Render scene
     renderScene(render_context);
@@ -342,7 +342,7 @@ void Renderer::processScreenResize(int new_window_width, int new_window_height) 
     glRenderbufferStorageMultisample(GL_RENDERBUFFER, subsamples, GL_DEPTH24_STENCIL8, window_width,
                                      window_height);
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     // Now for the intermediate framebuffer and the screen quad texture
     glBindTexture(GL_TEXTURE_2D, screen_texture);
@@ -351,7 +351,7 @@ void Renderer::processScreenResize(int new_window_width, int new_window_height) 
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Renderer::renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera) {
+void Renderer::renderPrep(Camera* camera) {
     // Render to multisample framebuffer to write to multisample texture
     glBindFramebuffer(GL_FRAMEBUFFER, multisample_fbo);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -378,12 +378,6 @@ void Renderer::renderScene(const RenderContext& render_context) {
     glm::mat4 projection = glm::perspective(
         glm::radians(render_context.camera->fov),
         (static_cast<float>(window_width) / static_cast<float>(window_height)), 0.1f, 100.f);
-
-    // Fill the UBO with view and projection matrices
-    glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     shader_lib.get("skybox").use();
     // Keeping the upper 3x3 of the view matrix removes the element of translation from it.

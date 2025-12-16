@@ -42,7 +42,7 @@ private:
     void initFramebuffers();
     void initScreenQuad();
 
-    void renderPrep(std::vector<std::shared_ptr<GameObject>>& objects, Camera* camera);
+    void renderPrep(Camera* camera);
     void renderScene(const RenderContext& render_context);
     void renderOutlinedObject(GameObject& selected_object);
     void renderBbox(const GameObject& object);

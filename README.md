@@ -65,7 +65,6 @@ mkdir build
 cd .\build\
 cmake ..
 cmake --build .
-.\Debug\main.exe
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
